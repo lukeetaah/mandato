@@ -99,6 +99,11 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           <h2 className="text-xl font-bold text-slate-100 tracking-tight font-serif mt-1">
             {fortnight === 1 ? 'Primera quincena' : 'Segunda quincena'} de {calendar.monthCycleName} ({calendar.season} {calendar.year})
           </h2>
+          {gameState.phase === 'opposition' && (
+            <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg border border-rose-400/40 bg-rose-950/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-rose-200 font-sans">
+              OposiciÃ³n activa · prensa, redes y carpetas tambiÃ©n gobiernan
+            </span>
+          )}
         </div>
 
         <div className="z-10 flex items-center gap-4 bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-900/40 text-xs text-amber-200 font-sans shadow-lg">

@@ -89,6 +89,40 @@ const NATIONAL_LIFE_EVENTS: Array<{
   },
 ];
 
+const CAMPAIGN_EVENTS: Array<{
+  id: string;
+  category: EventCategory;
+  when: (state: GameState) => boolean;
+  title: string;
+  description: string;
+  effects: GameEvent['effects'];
+}> = [
+  {
+    id: 'campaign-dossier',
+    category: 'mediatico',
+    when: (state) => state.calendar.turnsUntilLegislative <= 7 || state.calendar.turnsUntilPresidential <= 7,
+    title: 'Aparece una carpeta con la fecha de la elección en la tapa',
+    description: 'Un sobre sin remitente llega a tres redacciones al mismo tiempo. Contiene contratos viejos, una foto borrosa y una frase que nadie quiere firmar: acá empezó todo.',
+    effects: { national: { governance: { institutionality: -2 }, society: { polarization: 5 } }, reputation: { prensa: 4, 'clase-media': -3 } },
+  },
+  {
+    id: 'campaign-influencer',
+    category: 'mediatico',
+    when: (state) => state.calendar.turnsUntilLegislative <= 5 || state.calendar.turnsUntilPresidential <= 5,
+    title: 'Un influencer cambia de candidato durante una transmisión en vivo',
+    description: 'La persona que ayer te llamaba estadista hoy te llama "administrador de consorcio" ante una audiencia más grande que la de los canales de noticias.',
+    effects: { national: { society: { polarization: 4 } }, reputation: { jovenes: -5, prensa: 3 }, character: { popularity: -3 } },
+  },
+  {
+    id: 'campaign-carpetazo',
+    category: 'politico',
+    when: (state) => state.calendar.turnsUntilLegislative <= 3 || state.calendar.turnsUntilPresidential <= 3,
+    title: 'El carpetazo de campaña se cae antes del debate',
+    description: 'La oposición anuncia una denuncia histórica y la archiva antes de leerla. El archivo igual se filtra, porque en la República del Sur hasta los carpetazos tienen copias de seguridad.',
+    effects: { national: { governance: { institutionality: 2 }, society: { polarization: -2 } }, reputation: { prensa: 6, 'clase-media': 3 } },
+  },
+];
+
 /**
  * Generador Combinatorio de Eventos Dinámicos (Más de 500 variaciones posibles)
  */
@@ -98,7 +132,7 @@ export function generateSystemicEvent(state: GameState, seed: number): GameEvent
   const turn = state.turn;
   const season = state.calendar.season;
 
-  const lifeCandidates = NATIONAL_LIFE_EVENTS.filter((candidate) =>
+  const lifeCandidates = [...NATIONAL_LIFE_EVENTS, ...CAMPAIGN_EVENTS].filter((candidate) =>
     candidate.when(state) && !state.eventLog.some((entry) => entry.title === candidate.title),
   );
   const lifeEvent = lifeCandidates.length > 0 ? pick(rng, lifeCandidates) : undefined;

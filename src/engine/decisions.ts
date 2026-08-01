@@ -1,4 +1,4 @@
-import type { Decision, GameState } from './types';
+import type { Decision, DecisionChoice, GameState } from './types';
 
 export const DECISION_POOL: Decision[] = [
   // ─── CRISIS DE RESERVAS Y DIVISAS ───
@@ -571,8 +571,76 @@ export const DECISION_POOL: Decision[] = [
   },
 ];
 
+const compactPreview = (gain: string, loss: string, risk: string) => ({
+  gains: [{ icon: '✓', label: gain, magnitude: 'moderado' as const }],
+  losses: [{ icon: '⚠', label: loss, magnitude: 'moderado' as const }],
+  risks: [{ icon: '!', label: risk, magnitude: 'moderado' as const }],
+  beneficiaries: [],
+  opponents: [],
+});
+
+const campaignChoice = (id: string, label: string, description: string, effects: DecisionChoice['effects'], flag: string): DecisionChoice => ({
+  id,
+  label,
+  description,
+  preview: compactPreview('Más chances de ganar votos', 'Costo político y reputacional', 'Una filtración puede cambiar la lectura'),
+  effects,
+  delayedEffects: [],
+  flags: [flag],
+});
+
+const CAMPAIGN_DECISIONS: Decision[] = [
+  {
+    id: 'dec-campana-legislativa',
+    title: 'CAMPAÑA LEGISLATIVA: EL CONGRESO SE JUEGA EN LA CALLE',
+    description: 'Faltan pocas semanas para las legislativas. No alcanza con inaugurar una obra: tenés que decidir qué vínculo vas a construir con prensa, redes, influencers y los territorios que todavía no te perdonaron.',
+    source: 'Jefatura de Gabinete y equipo electoral',
+    urgency: 'alta',
+    category: 'politico',
+    repeatable: true,
+    cooldown: 24,
+    requirements: [],
+    choices: [
+      campaignChoice('choice-legislativa-medios', 'Pactar cobertura favorable con medios nacionales', 'Garantizás entrevistas y tapas amables. La prensa empieza a cobrarte la gentileza con intereses.', { reputation: { prensa: 10, 'clase-media': 3 }, character: { popularity: 4, pragmatismo: 3 } }, 'campaign-legislative-media'),
+      campaignChoice('choice-legislativa-influencers', 'Financiar una red de influencers territoriales', 'Creadores locales convierten tus políticas en videos, chistes internos y recorridas con mate. Nadie sabe quién les paga.', { national: { society: { polarization: 4 } }, reputation: { jovenes: 12, prensa: -3 }, character: { popularity: 5, ego: 3 } }, 'campaign-legislative-influencers'),
+      campaignChoice('choice-legislativa-territorio', 'Hacer campaña puerta a puerta con gobernadores', 'Dejás el estudio de televisión y aceptás que cada gobernador te cobre la foto con una promesa de obra.', { national: { economy: { investment: 2 } }, reputation: { campo: 5, 'clase-media': 4 }, character: { popularity: 4, pragmatismo: 4 } }, 'campaign-legislative-territory'),
+    ],
+  },
+  {
+    id: 'dec-campana-presidencial',
+    title: 'CAMPAÑA PRESIDENCIAL: CUATRO AÑOS EN UN DEBATE',
+    description: 'La elección presidencial ya no se gana solamente con indicadores. Tu rival ofrece una salida simple; vos tenés que decidir si defendés el balance, atacás a la prensa o negociás con quienes pueden cambiar el humor de una provincia en una tarde.',
+    source: 'Comando de campaña',
+    urgency: 'critica',
+    category: 'politico',
+    repeatable: true,
+    cooldown: 48,
+    requirements: [],
+    choices: [
+      campaignChoice('choice-presidencial-debate', 'Ir al debate y defender cada costo del mandato', 'Mostrás números, cicatrices y decisiones incómodas. No prometés milagros: prometés memoria.', { reputation: { 'clase-media': 8, prensa: 4 }, character: { popularity: 5, stress: 3 } }, 'campaign-presidential-debate'),
+      campaignChoice('choice-presidencial-redes', 'Entregar la campaña a las redes y al escándalo', 'Tu equipo fabrica una conversación diaria: clips, filtraciones y una guerra de hashtags. La campaña arde; la República también.', { national: { society: { polarization: 8 } }, reputation: { jovenes: 10, prensa: -8 }, character: { popularity: 6, stress: 5 } }, 'campaign-presidential-networks'),
+      campaignChoice('choice-presidencial-acuerdo', 'Cerrar acuerdos con gobernadores e influencers', 'Asegurás fiscales, pauta y videos virales. La gobernabilidad de mañana empieza con una foto que hoy preferirías no explicar.', { reputation: { jovenes: 6, prensa: -4, campo: 4 }, character: { popularity: 4, pragmatismo: 6 } }, 'campaign-presidential-deals'),
+    ],
+  },
+  {
+    id: 'dec-oposicion-prensa',
+    title: 'OPOSICIÓN: LA CARPETA QUE PUEDE DEVOLVERTE AL CENTRO',
+    description: 'Ya no firmás decretos, pero seguís teniendo nombre, contactos y memoria. Un periodista te ofrece publicar una investigación sobre el nuevo gobierno si aceptás compartirle documentos y bancar el costo político.',
+    source: 'Periodista de investigación',
+    urgency: 'media',
+    category: 'mediatico',
+    repeatable: true,
+    cooldown: 6,
+    requirements: [],
+    choices: [
+      campaignChoice('choice-oposicion-investigar', 'Entregar la carpeta y denunciar desde afuera', 'Convertís tu memoria de Estado en munición opositora. Nadie va a olvidar quién abrió el archivo.', { national: { society: { polarization: 4 } }, reputation: { prensa: 8, jovenes: 3 }, character: { popularity: 3, stress: 2 } }, 'opposition-investigator'),
+      campaignChoice('choice-oposicion-negociar', 'Negociar una denuncia a cambio de una reforma', 'No perdonás: negociás. El gobierno salva una cara y vos conseguís que avance una ley que no pudiste aprobar.', { national: { governance: { institutionality: 3 } }, reputation: { prensa: -2, 'clase-media': 6 }, character: { pragmatismo: 5 } }, 'opposition-negotiator'),
+    ],
+  },
+];
+
 export function getEligibleDecisions(state: GameState): Decision[] {
-  return DECISION_POOL.filter((d) => {
+  return [...DECISION_POOL, ...CAMPAIGN_DECISIONS].filter((d) => {
     const history = state.decisionHistory.filter((dh) => dh.id === d.id);
     if (history.length > 0 && !d.repeatable) {
       return false;
@@ -585,10 +653,46 @@ export function getEligibleDecisions(state: GameState): Decision[] {
       }
     }
     return isRelevantToCountry(d.id, state);
-  });
+  }).map((decision) => contextualizeDecision(decision, state));
 }
 
 /** Evita expedientes absurdos: cada tema aparece cuando el país tiene una razón para discutirlo. */
+function contextualizeDecision(decision: Decision, state: GameState): Decision {
+  if (decision.id !== 'dec-subsidio-transporte') return decision;
+  const history = state.decisionHistory.filter((entry) => entry.id === decision.id);
+  if (history.length === 0) return decision;
+
+  const round = history.length;
+  if (round % 2 === 1) {
+    return {
+      ...decision,
+      title: 'TRANSPORTE: LA TARIFA SOCIAL SE ROMPE POR EL MEDIO',
+      description: 'Ya aplicaste una soluciÃ³n general y el problema volviÃ³ con otra cara. La auditorÃ­a muestra que los subsidios llegan distinto segÃºn la provincia; esta vez la discusiÃ³n no es cuÃ¡nto aumentar, sino quiÃ©n paga y quiÃ©n queda afuera.',
+      choices: [
+        { id: `choice-transporte-ruta-${round}`, label: 'Subsidio focalizado por recorrido y horario', description: 'ProtegÃ©s los trayectos esenciales y dejÃ¡s que el resto cubra una parte mayor del costo.', preview: compactPreview('Ayuda a quienes realmente viajan', 'Sistema difÃ­cil de controlar', 'Municipios que inventan pasajeros'), effects: { national: { economy: { reserves: -2 }, society: { poverty: -2, trust: 3 } }, reputation: { trabajadores: 8, 'clase-media': 5, mercados: -3 }, character: { popularity: 4, pragmatismo: 3 } }, delayedEffects: [] },
+        { id: `choice-transporte-concesiones-${round}`, label: 'Auditar concesiones y publicar los costos reales', description: 'CongelÃ¡s el aumento durante un mes para mostrar contratos, frecuencias y ganancias. La transparencia llega con olor a nafta.', preview: compactPreview('Control institucional', 'Demora en la soluciÃ³n', 'Una carpeta compromete a aliados'), effects: { national: { governance: { institutionality: 4 }, economy: { investment: -1 } }, reputation: { prensa: 8, 'clase-media': 4, empresarios: -8 }, character: { popularity: 2, stress: 3 } }, delayedEffects: [{ turnsDelay: 5, probability: 0.65, effects: { national: { governance: { corruption: -4 }, society: { socialConflicts: 4 } } }, description: 'La auditorÃ­a encuentra una flota fantasma: colectivos que cobran subsidio, pero solo existen en una planilla.', sourceDecisionId: decision.id, originTurn: 0 }] },
+        { id: `choice-transporte-regional-${round}`, label: 'Dar autonomÃ­a tarifaria a las provincias', description: 'DejÃ¡s de administrar cada boleto desde la capital y obligÃ¡s a cada gobernador a explicar su propia tarifa.', preview: compactPreview('Federalismo y responsabilidad local', 'Un paÃ­s con precios distintos', 'Gobernadores que usan el boleto como campaÃ±a'), effects: { national: { governance: { institutionality: 2 }, society: { trust: -3 } }, reputation: { 'clase-media': -4, campo: 6 }, character: { pragmatismo: 5 } }, delayedEffects: [] },
+      ],
+    };
+  }
+
+  return {
+    ...decision,
+    title: 'TRANSPORTE: EL PARO QUE NO CABE EN UNA PLANILLA',
+    description: 'La primera suba y la segunda reforma no resolvieron el fondo. Ahora los choferes paran por turnos, los usuarios organizan mapas de frecuencias y un streamer transmite desde una terminal con mÃ¡s audiencia que el noticiero.',
+    choices: [
+      { id: `choice-transporte-renegociar-${round}`, label: 'Renegociar concesiones a cambio de frecuencia mÃ­nima', description: 'El Estado sostiene los recorridos indispensables; las empresas aceptan ganar menos y mostrar sus libros.', preview: compactPreview('Servicio garantizado', 'Costo fiscal', 'Aliados que pierden negocios'), effects: { national: { economy: { reserves: -3 }, society: { employment: 2, socialConflicts: -7 } }, reputation: { trabajadores: 7, empresarios: -5 }, character: { popularity: 5 } }, delayedEffects: [] },
+      { id: `choice-transporte-datos-${round}`, label: 'Publicar un tablero nacional de frecuencias', description: 'La gente puede ver quÃ© lÃ­nea funciona, cuÃ¡l cobra y quiÃ©n incumple. La transparencia no mueve colectivos, pero mueve votos.', preview: compactPreview('Control ciudadano', 'Costo tecnolÃ³gico', 'Memes con cada demora'), effects: { national: { governance: { institutionality: 3 }, economy: { investment: -1 } }, reputation: { jovenes: 6, prensa: 5 }, character: { popularity: 3, pragmatismo: 3 } }, delayedEffects: [] },
+      { id: `choice-transporte-desregulacion-${round}`, label: 'Desregular y dejar entrar nuevos operadores', description: 'AbrÃ­s la puerta a cooperativas, aplicaciones y empresas provinciales. Competencia, sÃ­; coordinaciÃ³n, veremos.', preview: compactPreview('MÃ¡s oferta potencial', 'RegulaciÃ³n mÃ¡s dÃ©bil', 'Accidentes y concentraciÃ³n'), effects: { national: { economy: { investment: 4 }, governance: { institutionality: -2 } }, reputation: { mercados: 7, trabajadores: -10 }, character: { pragmatismo: 6 } }, delayedEffects: [] },
+    ],
+  };
+}
+
+function isCampaignWindow(state: GameState, election: 'legislative' | 'presidential'): boolean {
+  const turns = election === 'legislative' ? state.calendar.turnsUntilLegislative : state.calendar.turnsUntilPresidential;
+  return turns > 0 && turns <= 10;
+}
+
 function isRelevantToCountry(decisionId: string, state: GameState): boolean {
   const { economy, society } = state.nation;
 
@@ -609,6 +713,12 @@ function isRelevantToCountry(decisionId: string, state: GameState): boolean {
       return state.turn >= 10 && state.turn <= 34;
     case 'dec-mascota-cadena':
       return state.character.popularity < 48 || state.socialMedia.memeAboutPlayer;
+    case 'dec-campana-legislativa':
+      return state.phase === 'playing' && isCampaignWindow(state, 'legislative');
+    case 'dec-campana-presidencial':
+      return state.phase === 'playing' && isCampaignWindow(state, 'presidential');
+    case 'dec-oposicion-prensa':
+      return state.phase === 'opposition';
     default:
       return true;
   }

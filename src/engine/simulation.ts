@@ -322,6 +322,18 @@ function buildAnnualDocumentary(state: GameState, headlines: HeadlineItem[]): An
   };
 }
 
+function campaignMomentum(state: GameState, type: 'legislative' | 'presidential', electionTurn: number): number {
+  const prefix = type === 'legislative' ? 'dec-campana-legislativa' : 'dec-campana-presidencial';
+  const recent = state.decisionHistory.filter((entry) => entry.id === prefix && entry.turn >= electionTurn - 10);
+  return recent.reduce((score, entry) => {
+    const choice = entry.choiceId;
+    if (choice.includes('medios') || choice.includes('debate')) return score + 5;
+    if (choice.includes('influencers') || choice.includes('redes')) return score + 4;
+    if (choice.includes('territorio') || choice.includes('acuerdo')) return score + 6;
+    return score;
+  }, 0);
+}
+
 export function createNewGame(seed: number = Date.now(), customChar?: Partial<Character>): GameState {
   const rng = createRng(seed);
 
@@ -459,6 +471,7 @@ export function advanceTurn(state: GameState): GameState {
   let currentReputation = { ...state.reputation };
   let currentCharacter = { ...state.character };
   let currentActors = advanceActorWorld(state.actors, nextTurn, state.seed);
+  let nextPhase: GameState['phase'] = state.phase;
   const newLogs: LogEntry[] = [];
   const nextScars = [...state.scars];
   const nextElections = [...state.electionsHistory];
@@ -515,13 +528,16 @@ export function advanceTurn(state: GameState): GameState {
 
   // Elecciones Legislativas (Cada 24 meses)
   if (nextCalendar.turnsUntilLegislative === 0 && nextTurn > 1) {
-    const electionPassed = currentCharacter.popularity >= 40;
+    const campaignBonus = campaignMomentum(state, 'legislative', nextTurn);
+    const legislativeScore = currentCharacter.popularity + campaignBonus + (currentReputation.prensa - 50) * 0.15;
+    const electionPassed = legislativeScore >= 40;
+    const estimatedSeats = Math.max(20, Math.min(80, Math.round(50 + (legislativeScore - 40) * 1.8)));
     newLogs.push({
       turn: nextTurn,
       type: 'election',
       title: '🏛️ Elecciones legislativas nacionales',
       description: electionPassed
-        ? `Con ${Math.round(currentCharacter.popularity)}% de popularidad, tu partido consolida bancas en el Congreso.`
+        ? `Con ${Math.round(legislativeScore)} puntos de fuerza electoral, tu partido consigue aproximadamente ${estimatedSeats}% de las bancas y conserva la iniciativa en el Congreso.`
         : `Derrota legislativa con ${Math.round(currentCharacter.popularity)}% de imagen. La oposición obtiene mayoría en la Cámara.`,
       emotionalText: 'Ganar o perder el Congreso define si gobernás con decretos o negociando cada coma.',
     });
@@ -538,8 +554,10 @@ export function advanceTurn(state: GameState): GameState {
   }
 
   // Elecciones Presidenciales (Cada 48 meses)
-  if (nextCalendar.turnsUntilPresidential === 0 && nextTurn > 1) {
-    const reelected = currentCharacter.popularity >= 45;
+  if (state.phase !== 'opposition' && nextCalendar.turnsUntilPresidential === 0 && nextTurn > 1) {
+    const campaignBonus = campaignMomentum(state, 'presidential', nextTurn);
+    const presidentialScore = currentCharacter.popularity + campaignBonus + (currentReputation['clase-media'] - 50) * 0.2;
+    const reelected = presidentialScore >= 45;
     newLogs.push({
       turn: nextTurn,
       type: 'election',
@@ -551,18 +569,26 @@ export function advanceTurn(state: GameState): GameState {
         ? 'Cuatro años más de poder y responsabilidad sobre la espalda.'
         : 'La banda presidencial cambia de manos. Tu nombre entra a la historia de los expresidentes.',
     });
+    nextElections.push({
+      turn: nextTurn,
+      year: nextCalendar.year,
+      type: 'presidencial',
+      winnerPartyId: reelected ? currentCharacter.partyId : 'partido-liberal',
+      winnerPartyName: reelected ? `${currentCharacter.name} ${currentCharacter.surname}` : 'Frente Opositor',
+      playerPopularityAtElection: presidentialScore,
+      congressMajority: state.electionsHistory[state.electionsHistory.length - 1]?.congressMajority ?? false,
+      description: reelected ? 'ReelecciÃ³n presidencial con una campaÃ±a apoyada en debate y territorio.' : 'Cambio de gobierno; el expresidente conserva una banca de influencia en la oposiciÃ³n.',
+    });
     if (!reelected) {
-      return {
-        ...state,
+      nextPhase = 'opposition';
+      currentCharacter = { ...currentCharacter, career: 'expresidente' };
+      newLogs.push({
         turn: nextTurn,
-        phase: 'gameover',
-        calendar: nextCalendar,
-        character: currentCharacter,
-        nation: currentNation,
-        electionsHistory: nextElections,
-        eventLog: [...state.eventLog, ...newLogs].slice(-200),
-        updatedAt: Date.now(),
-      };
+        type: 'system',
+        title: 'La oposición te devuelve un escritorio, no un silencio',
+        description: 'Perdiste la reelección, pero conservás contactos, memoria y una audiencia. Desde ahora tus carpetas llegan desde la oposición: podés investigar, negociar o embarrar la cancha con prensa, redes e influencers.',
+        emotionalText: 'El poder cambia de despacho. La política, por suerte, no pide permiso para seguir.',
+      });
     }
   }
 
@@ -601,6 +627,7 @@ export function advanceTurn(state: GameState): GameState {
   // 6. Generar Titulares y Archivar Edición Impresa en la Hemeroteca
   const nextStateForHeadlines: GameState = {
     ...state,
+    phase: nextPhase,
     turn: nextTurn,
     calendar: nextCalendar,
     nation: currentNation,
@@ -633,7 +660,9 @@ export function advanceTurn(state: GameState): GameState {
 
   const existingPending = state.pendingDecisions;
   const pressure = countryPressure(nextStateForHeadlines);
-  const desiredPending = pressure >= 70 ? 6 : pressure >= 48 ? 3 : pressure >= 27 ? 1 : (contextualDecision ? 1 : (nextTurn % 6 === 0 ? 1 : 0));
+  const desiredPending = state.phase === 'opposition' || nextPhase === 'opposition'
+    ? 1
+    : pressure >= 70 ? 6 : pressure >= 48 ? 3 : pressure >= 27 ? 1 : (contextualDecision ? 1 : (nextTurn % 6 === 0 ? 1 : 0));
   const capacity = Math.max(0, desiredPending - existingPending.length);
   const context = contextualDecision && !existingPending.some((decision) => decision.id === contextualDecision!.id)
     ? [contextualDecision]
@@ -646,6 +675,7 @@ export function advanceTurn(state: GameState): GameState {
 
   return {
     ...state,
+    phase: nextPhase,
     turn: nextTurn,
     calendar: nextCalendar,
     dailyHeadlines,
@@ -748,6 +778,9 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     'dec-retenciones-agro': 'actor-empresario-influyente',
     'dec-paritaria-docente': 'actor-jefe-gabinete',
     'dec-fmi-renegociacion': 'actor-ministra-economia',
+    'dec-campana-legislativa': 'actor-lider-opositora',
+    'dec-campana-presidencial': 'actor-lider-opositora',
+    'dec-oposicion-prensa': 'actor-lider-opositora',
   };
   const actorId = decision.sourceActorId ?? defaultActors[decision.id];
   const sentiment = choice.effects.reputation?.trabajadores && choice.effects.reputation.trabajadores < 0 ? -8 : 5;

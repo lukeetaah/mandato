@@ -27,7 +27,7 @@ export type CareerStage =
   | 'presidente'
   | 'expresidente';
 
-export type GamePhase = 'menu' | 'creation' | 'playing' | 'paused' | 'gameover';
+export type GamePhase = 'menu' | 'creation' | 'playing' | 'paused' | 'opposition' | 'gameover';
 
 export type EducationLevel = 'primario' | 'secundario' | 'terciario' | 'universitario' | 'posgrado';
 
