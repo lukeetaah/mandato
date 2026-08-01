@@ -6,10 +6,10 @@ export function calculateLegacy(state: GameState): Legacy {
   let title = 'El Político Olvidado';
   let epitaph = 'Cumplió su tiempo en el poder sin dejar incendios incontrolables ni estatuas memorables.';
 
-  if (state.phase === 'gameover' && state.eventLog.some((entry) => entry.title.toLowerCase().includes('juicio político'))) {
+  if (state.flags['trial-convicted'] || (state.phase === 'gameover' && state.eventLog.some((entry) => entry.title.toLowerCase().includes('juicio político')))) {
     archetype = 'el-preso';
-    title = 'El Presidente Procesado';
-    epitaph = 'La historia todavía discute si fue culpable, ingenuo o simplemente el último en firmar. El expediente, por ahora, tiene más páginas que su mandato.';
+    title = 'El Presidente Condenado';
+    epitaph = 'El juicio político terminó en condena y el expresidente quedó detenido. La historia todavía discute sus motivos, pero el expediente ya no discute el desenlace.';
   } else if (character.traits.honesty > 75 && nation.governance.corruption < 35 && patterns.favorsAccepted === 0) {
     if (nation.economy.gdp < 40) {
       archetype = 'el-incorruptible-ineficaz';

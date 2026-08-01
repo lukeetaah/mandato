@@ -805,6 +805,28 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   const isTrialDecision = decision.id.startsWith('trial-');
   const trialConviction = isTrialDecision && choiceId === 'trial-condena';
   const nextPhase: GameState['phase'] = isTrialDecision ? (trialConviction ? 'gameover' : 'playing') : state.phase;
+  const trialResolution = isTrialDecision
+    ? choiceId === 'trial-inocencia'
+      ? {
+        flag: 'trial-acquitted',
+        title: 'Juicio político: absolución tras abrir los archivos',
+        description: 'La defensa exhibió contratos, auditorías y órdenes de servicio. La comisión no encontró una responsabilidad suficiente para sostener la acusación y cerró el expediente, aunque varias decisiones quedaron bajo observación pública.',
+        emotionalText: 'Te vas absuelto, no ileso: cada firma queda como una cicatriz de la gestión.',
+      }
+      : choiceId === 'trial-merito'
+      ? {
+        flag: 'trial-dismissed',
+        title: 'Juicio político: causa archivada por falta de mérito',
+        description: 'La acusación no logró probar una responsabilidad directa y la causa fue archivada. El mandato continúa, pero la oposición conserva la carpeta y la confianza institucional queda más frágil.',
+        emotionalText: 'La falta de mérito no es una ovación: es una puerta que se cierra sin que nadie deje de mirar la cerradura.',
+      }
+      : {
+        flag: 'trial-convicted',
+        title: 'Juicio político: condena y fin de la carrera',
+        description: 'El tribunal político encontró responsabilidad suficiente. El mandato termina y el expresidente queda detenido mientras el expediente sigue su curso; el legado de esta partida queda marcado por la condena.',
+        emotionalText: 'No fue un mal titular: fue el final de tu gobierno y el comienzo de tu expediente penal ficticio.',
+      }
+    : null;
 
   const logEntry: LogEntry = {
     turn: state.turn,
@@ -813,6 +835,21 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     description: `Decisión ejecutada: "${choice.label}".`,
     emotionalText: choice.emotionalImpact ?? `Elegiste la opción "${choice.label}". El país absorbe el costo.`,
   };
+  const resolutionLog: LogEntry | null = trialResolution ? {
+    turn: state.turn,
+    type: 'system',
+    title: trialResolution.title,
+    description: trialResolution.description,
+    emotionalText: trialResolution.emotionalText,
+  } : null;
+  const trialHeadline: HeadlineItem | null = trialResolution && !trialConviction ? {
+    id: `hl-trial-resolution-${state.turn}`,
+    outletName: 'Canal 11 Red Federal',
+    title: trialResolution.title.toUpperCase(),
+    subhead: trialResolution.description,
+    category: 'politico',
+    bias: trialResolution.flag === 'trial-acquitted' ? 'oficialista' : 'opositor',
+  } : null;
 
   const actionKey = `${decision.id} ${choice.id}`.toLowerCase();
   const updatedPatterns = { ...state.patterns };
@@ -856,12 +893,14 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     flags: {
       ...state.flags,
       ...(choice.flags ?? []).reduce<Record<string, boolean>>((flags, flag) => ({ ...flags, [flag]: true }), {}),
+      ...(trialResolution ? { [trialResolution.flag]: true } : {}),
     },
     pendingDecisions: remainingPending,
     deskObjects: buildDeskObjects(remainingPending, state.turn, state.dailyHeadlines),
     activeDelayedEffects: [...state.activeDelayedEffects, ...newDelayed],
     decisionHistory: [...state.decisionHistory, { id: decision.id, turn: state.turn, choiceId }],
-    eventLog: [...state.eventLog, logEntry].slice(-200),
+    dailyHeadlines: trialHeadline ? [trialHeadline, ...state.dailyHeadlines].slice(0, 12) : state.dailyHeadlines,
+    eventLog: [...state.eventLog, logEntry, ...(resolutionLog ? [resolutionLog] : [])].slice(-200),
     updatedAt: Date.now(),
   };
 }

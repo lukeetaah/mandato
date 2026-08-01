@@ -25,6 +25,11 @@ export const GameOver: React.FC<GameOverProps> = ({ onRestart }) => {
       <div className="glass-panel p-8 rounded-2xl max-w-xl text-center border border-amber-500/30">
         <h2 className="text-4xl font-extrabold text-amber-300 mb-2">Fin del Mandato</h2>
         <h3 className="text-xl font-bold text-slate-100 mb-4">{legacy.title}</h3>
+        {gameState.flags['trial-convicted'] && (
+          <p className="text-xs text-rose-300 mb-4 rounded-lg border border-rose-500/30 bg-rose-950/40 p-3">
+            Condena política ficticia: el mandato terminó y el expresidente quedó detenido mientras continúa el expediente.
+          </p>
+        )}
         <p className="text-slate-300 italic mb-6">«{legacy.epitaph}»</p>
 
         <div className="text-xs text-slate-400 mb-8 p-4 rounded-lg bg-slate-900 border border-slate-800">
