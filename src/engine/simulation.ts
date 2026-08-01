@@ -157,11 +157,38 @@ export function buildDeskObjects(decisions: Decision[], turn: number, headlines:
   return objects;
 }
 
-function generateNewspaperIssue(state: GameState, rng: ReturnType<typeof createRng>): HeadlineIssue {
-  const headlines = generateDailyHeadlines(state, rng);
-  const main = headlines[0]!;
+function generateNewspaperIssue(state: GameState, rng: ReturnType<typeof createRng>, headlines: HeadlineItem[]): HeadlineIssue {
+  const main = headlines[0] ?? {
+    id: `hl-main-${state.turn}`,
+    outletName: 'El Diario del Sur',
+    title: 'NUEVA ETAPA EN EL GOBIERNO NACIONAL',
+    subhead: 'El Poder Ejecutivo analiza las primeras medidas para el mandato.',
+    category: 'politico',
+    bias: 'oficialista',
+  };
   const secondaries = headlines.slice(1);
   const calendar = state.calendar;
+
+  // Construir un texto editorial dinámico y variado según las decisiones y economía del momento
+  const recentDecisions = (state.eventLog ?? []).filter((l) => l.type === 'decision').slice(-2);
+  let editorialText = '';
+
+  if (recentDecisions.length > 0) {
+    const lastDec = recentDecisions[recentDecisions.length - 1]!;
+    editorialText = `Tras la reciente definición respecto a "${lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '')}", las repercusiones políticas se hicieron sentir de inmediato en el Congreso y en los mercados. ${lastDec.emotionalText ?? lastDec.description}`;
+  } else if (state.nation.economy.inflation > 60) {
+    editorialText = `Con una inflación rozando el ${Math.round(state.nation.economy.inflation)}%, la presión social sobre el despacho presidencial alcanza un punto crítico. La paciencia de los sectores productivos se agota a ritmo acelerado.`;
+  } else if (state.nation.economy.reserves < 20) {
+    editorialText = `El alarmante nivel de reservas en el Banco Central (${Math.round(state.nation.economy.reserves)}%) condiciona cada movimiento del gabinete. Sin divisas suficientes, las negociaciones internacionales son contrarreloj.`;
+  } else if (state.character.popularity > 60) {
+    editorialText = `El respaldo popular del ${Math.round(state.character.popularity)}% otorga al presidente un margen de maniobra envidiable. Sin embargo, la oposición advierte sobre los riesgos del triunfalismo antes del cierre fiscal.`;
+  } else {
+    editorialText = pick(rng, [
+      `La ${calendar.fortnight === 1 ? 'primera' : 'segunda'} quincena de ${calendar.season} pone a prueba el pulso político de la administración. Con una popularidad en ${Math.round(state.character.popularity)}%, la gobernabilidad requiere consensos constantes.`,
+      `El panorama económico marcado por un nivel de reservas del ${Math.round(state.nation.economy.reserves)}% exige máxima prudencia técnica. El gabinete busca sostener el equilibrio sin resentir la imagen pública.`,
+      `Entre la presión sindical y las demandas de los gobernadores provinciales, el oficialismo intenta ordenar su agenda parlamentaria antes del próximo cierre de sesiones.`,
+    ]);
+  }
 
   return {
     turn: state.turn,
@@ -173,7 +200,7 @@ function generateNewspaperIssue(state: GameState, rng: ReturnType<typeof createR
     dateString: `Edición N° ${1000 + state.turn} — ${calendar.fortnight === 1 ? '1ª Quincena' : '2ª Quincena'} de ${calendar.season} ${calendar.year}`,
     mainHeadline: main,
     secondaryHeadlines: secondaries,
-    editorialText: `El mes de ${calendar.season} pone a prueba la solidez del poder. La inflación en ${Math.round(state.nation.economy.inflation)}% y las reservas en ${Math.round(state.nation.economy.reserves)}% definen el margen político del gobierno.`,
+    editorialText,
     caricatureCaption: pick(rng, CARICATURES),
     classifieds: [
       'Se buscan contadores con experiencia en ingeniería contable.',
@@ -241,7 +268,7 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
 
   const initialStateForHeadlines: any = { turn: 1, calendar, nation, character, scars: [] };
   const dailyHeadlines = generateDailyHeadlines(initialStateForHeadlines, rng);
-  const initialIssue = generateNewspaperIssue(initialStateForHeadlines, rng);
+  const initialIssue = generateNewspaperIssue(initialStateForHeadlines, rng, dailyHeadlines);
 
   const eligible = getEligibleDecisions({
     turn: 1, decisionHistory: [], pendingDecisions: [],
@@ -484,7 +511,7 @@ export function advanceTurn(state: GameState): GameState {
     scars: nextScars,
   };
   const dailyHeadlines = generateDailyHeadlines(nextStateForHeadlines, rng);
-  const newIssue = generateNewspaperIssue(nextStateForHeadlines, rng);
+  const newIssue = generateNewspaperIssue(nextStateForHeadlines, rng, dailyHeadlines);
   const updatedHemeroteca = [newIssue, ...state.hemeroteca];
 
   // 7. Actualizar Patrones de Jugador
