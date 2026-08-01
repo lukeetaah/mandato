@@ -648,7 +648,10 @@ export function getEligibleDecisions(state: GameState): Decision[] {
 
     if (d.repeatable && d.cooldown) {
       const lastTaken = history[history.length - 1];
-      if (lastTaken && state.turn - lastTaken.turn < d.cooldown) {
+      // El cooldown de datos era demasiado corto: un expediente podía volver
+      // a la mesa antes de que el país hubiera tenido tiempo de absorberlo.
+      const minimumNarrativeGap = d.id === 'dec-subsidio-transporte' ? 20 : Math.max(12, d.cooldown);
+      if (lastTaken && state.turn - lastTaken.turn < minimumNarrativeGap) {
         return false;
       }
     }

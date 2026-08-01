@@ -23,7 +23,7 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
     editionNumber: 1000 + gameState.turn,
     dateString: `${gameState.calendar.season} de ${gameState.calendar.year}`,
     editorialText: 'El país asume el costo de las medidas recientes.',
-    caricatureCaption: 'El presidente haciendo malabares en el Banco Central.',
+    caricatureCaption: '“La estabilidad no hace ruido: se nota cuando una familia puede planificar la semana sin consultar tres precios distintos.” — Clara B. Arce, economista del Sur.',
     classifieds: ['Venta de contadores de billetes.', 'Alquiler de salones de conferencia.'],
     obituary: 'Falleció la estabilidad cambiaria.',
     adSatire: 'Compre dólares cara grande en el mercado paralelo.',
@@ -109,7 +109,7 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
 
             {/* Paginador tipo libro */}
             <div className="flex justify-center gap-3 mb-6 font-sans">
-              {['Página 1: Portada y Medios', 'Página 2: Editorial & Caricatura', 'Página 3: Clasificados & Obituarios'].map((label, idx) => (
+              {['Página 1: Portada y Medios', 'Página 2: Editorial & Frase de época', 'Página 3: Clasificados & Obituarios'].map((label, idx) => (
                 <button
                   key={idx}
                   onClick={() => setPage(idx)}
@@ -178,10 +178,10 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
 
                 <div className="p-4 bg-[#eadeca] rounded-xl border border-slate-400">
                   <h4 className="font-bold text-slate-950 border-b border-slate-600 pb-1 mb-2 font-serif text-sm">
-                    Caricatura política
+                    Frase de época
                   </h4>
                   <div className="p-4 bg-[#decfae] rounded text-center italic text-slate-900 text-xs font-serif">
-                    🎨 "{currentIssue.caricatureCaption}"
+                    🖋️ {currentIssue.caricatureCaption}
                   </div>
                 </div>
               </div>

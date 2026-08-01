@@ -51,14 +51,42 @@ const ADS_SATIRE = [
   'REPARACIÓN DE LÁPIZ DE REMARCAR PRECIOS. GARANTÍA DE 2 HORAS.',
 ];
 
-const CARICATURES = [
-  'El Ministro de Economía intentando tapar una fuga de agua en la represa con plastilina.',
-  'Un ciudadano corriendo a un billete volando por el viento mentre un remarcador ríe.',
-  'El Congreso de la República convertido en un remate de caballos.',
-  'El presidente intentando equilibrios en una cuerda floja sobre un mar de cocodrilos con corbata.',
+const ERA_QUOTES = [
+  '“Un presupuesto es una promesa escrita con números; lo difícil empieza cuando la gente intenta vivir dentro de ella.” — Archivo Federal, cuaderno de 2032.',
+  '“La estabilidad no hace ruido: se nota cuando una familia puede planificar la semana sin consultar tres precios distintos.” — Clara B. Arce, economista del Sur.',
+  '“Toda obra pública tiene dos inauguraciones: la de la cinta y la del día en que finalmente funciona.” — Máximo Ledesma, cronista parlamentario.',
+  '“En tiempos de crisis, el Estado no desaparece; cambia de ventanilla y espera que nadie lo reconozca.” — Frase atribuida a una asamblea vecinal del Distrito Federal.',
+  '“Gobernar es elegir qué incendio apagar, y explicar por qué el otro no era menos incendio.” — Elena Santillán, memorias apócrifas de gabinete.',
 ];
 
 const clamp = (value: number, max: number = 100) => Math.max(0, Math.min(max, value));
+
+function buildTrialDecision(turn: number): Decision {
+  const preview = (gain: string, loss: string) => ({
+    gains: [{ icon: '⚖️', label: gain, magnitude: 'fuerte' as const }],
+    losses: [{ icon: '⚠️', label: loss, magnitude: 'moderado' as const }],
+    risks: [],
+    beneficiaries: [],
+    opponents: [],
+  });
+
+  return {
+    id: `trial-${turn}`,
+    title: 'JUICIO POLÍTICO: EL EXPEDIENTE LLEGÓ A TU PUERTA',
+    description: 'Una combinación de contratos opacos, instituciones debilitadas y decisiones difíciles activó un proceso político. La causa es una ficción del juego: ahora tenés que demostrar tu inocencia, alegar falta de mérito o asumir una condena que puede terminar tu carrera.',
+    source: 'Comisión de Juicio Político',
+    urgency: 'critica',
+    category: 'politico',
+    repeatable: false,
+    cooldown: 0,
+    requirements: [],
+    choices: [
+      { id: 'trial-inocencia', label: 'Probar tu inocencia con documentos y auditorías', description: 'Abrís los archivos, citás funcionarios y aceptás que el proceso revise cada decisión. Si los papeles resisten, todavía podés recuperar autoridad.', preview: preview('Defensa institucional', 'Exposición pública'), effects: { national: { governance: { institutionality: 6, corruption: -5 } }, reputation: { prensa: 5, 'clase-media': 4 }, character: { popularity: 4, stress: 8 } }, delayedEffects: [], emotionalImpact: 'La verdad no siempre gana rápido, pero por lo menos deja un expediente que se puede leer.' },
+      { id: 'trial-merito', label: 'Alegar falta de mérito y negociar una salida', description: 'No admitís responsabilidad y buscás que la causa se archive por falta de pruebas suficientes. Conservás parte del poder, aunque muchos lo leerán como una fuga elegante.', preview: preview('Sobrevivir políticamente', 'Confianza pública'), effects: { national: { governance: { institutionality: 2 } }, reputation: { prensa: -3, 'clase-media': -4, mercados: 2 }, character: { popularity: -5, pragmatismo: 5 } }, delayedEffects: [], emotionalImpact: 'En política, una absolución técnica puede sonar menos heroica que una verdad a los gritos.' },
+      { id: 'trial-condena', label: 'No interferir y asumir la condena', description: 'Rechazás presionar testigos o trabar el proceso. La justicia política te aparta del cargo y la historia te deja una celda, una biblioteca o ambas cosas.', preview: preview('Cierre institucional', 'Fin de la carrera'), effects: { national: { governance: { institutionality: 4, corruption: 4 } }, reputation: { prensa: 3, 'clase-media': -8 }, character: { popularity: -20, stress: 15 } }, delayedEffects: [], emotionalImpact: 'El poder se termina de golpe; el expediente, en cambio, queda abierto durante décadas.' },
+    ],
+  };
+}
 
 /** Un único punto de aplicación para decisiones, eventos y consecuencias diferidas. */
 function applyEffects(
@@ -293,7 +321,7 @@ function generateNewspaperIssue(state: GameState, rng: ReturnType<typeof createR
     mainHeadline: main,
     secondaryHeadlines: secondaries,
     editorialText,
-    caricatureCaption: pick(rng, CARICATURES),
+    caricatureCaption: pick(rng, ERA_QUOTES),
     classifieds: [
       'Se buscan contadores con experiencia en ingeniería contable.',
       'Venta de generadores eléctricos seminuevos.',
@@ -610,10 +638,29 @@ export function advanceTurn(state: GameState): GameState {
     });
   }
 
+  const legalRisk = state.phase !== 'trial' && state.phase !== 'gameover' && nextTurn > 10
+    && (currentNation.governance.corruption >= 88
+      || currentNation.governance.institutionality <= 16
+      || (currentNation.society.socialConflicts >= 90 && currentCharacter.popularity <= 15));
+  const trialDecision = legalRisk ? buildTrialDecision(nextTurn) : null;
+  if (trialDecision) {
+    nextPhase = 'trial';
+    newLogs.push({
+      turn: nextTurn,
+      type: 'scandal',
+      title: 'La comisión activa el juicio político',
+      description: 'El expediente reúne contratos, omisiones y decisiones que ahora deberán ser explicadas en público. La partida entra en una instancia de defensa política.',
+      emotionalText: 'Una firma puede parecer pequeña durante una crisis. En un juicio, todas las firmas vuelven a tamaño real.',
+    });
+  }
+
   // 5. Generar Evento Sistémico
   const activeEvents: GameEvent[] = [];
   let contextualDecision: Decision | null = null;
-  if (chance(rng, 0.4)) {
+  const seasonalMoment = (nextCalendar.month === 12 && nextCalendar.fortnight === 2)
+    || (nextCalendar.month === 1 && nextCalendar.fortnight === 1);
+  const reserveOverflow = currentNation.economy.reserves >= 98;
+  if (!trialDecision && (chance(rng, 0.4) || seasonalMoment || reserveOverflow)) {
     const sysEvent = generateSystemicEvent({ ...state, turn: nextTurn, calendar: nextCalendar, nation: currentNation }, state.seed + nextTurn);
     activeEvents.push(sysEvent);
     const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent.effects);
@@ -676,7 +723,7 @@ export function advanceTurn(state: GameState): GameState {
     .filter((d) => !existingPending.some((ep) => ep.id === d.id))
     .slice(0, capacity);
 
-  const nextPendingDecisions = [...existingPending, ...newPicks];
+  const nextPendingDecisions = trialDecision ? [trialDecision] : [...existingPending, ...newPicks];
 
   return {
     ...state,
@@ -755,6 +802,9 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   }));
 
   const remainingPending = state.pendingDecisions.filter((d) => d.id !== decision.id);
+  const isTrialDecision = decision.id.startsWith('trial-');
+  const trialConviction = isTrialDecision && choiceId === 'trial-condena';
+  const nextPhase: GameState['phase'] = isTrialDecision ? (trialConviction ? 'gameover' : 'playing') : state.phase;
 
   const logEntry: LogEntry = {
     turn: state.turn,
@@ -797,9 +847,10 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
 
   return {
     ...state,
+    phase: nextPhase,
     nation: updated.nation,
     reputation: updated.reputation,
-    character: updated.character,
+    character: trialConviction ? { ...updated.character, stress: 100, popularity: 0 } : updated.character,
     actors,
     patterns: updatedPatterns,
     flags: {

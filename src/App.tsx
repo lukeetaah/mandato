@@ -12,7 +12,11 @@ export function App() {
   const [screen, setScreen] = useState<AppScreen>(gameState ? 'game' : 'menu');
 
   // Si se está en pantalla de juego sin estado, volver al menú
-  const effectiveScreen = (screen === 'game' && !gameState) ? 'menu' : screen;
+  const effectiveScreen = (screen === 'game' && !gameState)
+    ? 'menu'
+    : gameState?.phase === 'gameover'
+    ? 'gameover'
+    : screen;
 
   return (
     <>

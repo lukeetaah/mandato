@@ -132,6 +132,39 @@ export function generateSystemicEvent(state: GameState, seed: number): GameEvent
   const turn = state.turn;
   const season = state.calendar.season;
 
+  if (state.nation.economy.reserves >= 98) {
+    return {
+      id: `ev-reserve-excess-${state.calendar.year}-${turn}`,
+      title: 'RESERVAS AL 100%: EL SUPERÁVIT DESPIERTA APETITOS',
+      description: 'El Banco Central informa una acumulación extraordinaria de reservas. En pocas horas aparecen pedidos de obra, bonos, subsidios y proveedores que recuerdan que hasta una caja llena puede romperse si todos meten la mano al mismo tiempo.',
+      category: 'economico',
+      effects: { national: { economy: { reserves: -3, investment: -1 }, governance: { corruption: 2 } }, reputation: { empresarios: 3, 'clase-media': -2 } },
+      turnOccurred: turn,
+    };
+  }
+
+  if (state.calendar.month === 12 && state.calendar.fortnight === 2) {
+    return {
+      id: `ev-fiestas-${state.calendar.year}`,
+      title: 'FIESTAS DE FIN DE AÑO: EL PAÍS PIDE UNA TREGUA',
+      description: 'Las familias se preparan para las fiestas mientras municipios, sindicatos y hospitales reclaman fondos para sostener guardias, canastas y transporte. La celebración llega con luces, aguinaldos y una cuenta que alguien tendrá que pagar.',
+      category: 'social',
+      effects: { national: { economy: { reserves: -2 }, society: { trust: 2, socialConflicts: 3 } }, reputation: { jubilados: 3, trabajadores: 4, mercados: -2 } },
+      turnOccurred: turn,
+    };
+  }
+
+  if (state.calendar.month === 1 && state.calendar.fortnight === 1) {
+    return {
+      id: `ev-ano-nuevo-${state.calendar.year}`,
+      title: 'AÑO NUEVO: EL TEMPORAL DEJA A TRES PROVINCIAS SIN LUZ',
+      description: 'El primer amanecer del año encuentra rutas anegadas, barrios sin electricidad y una ola de reclamos en redes. Los gobernadores piden ayuda urgente; las empresas eléctricas responden con comunicados que nadie logra leer antes de que vuelva a llover.',
+      category: 'ambiental',
+      effects: { national: { economy: { reserves: -5, investment: -2 }, society: { health: -2, trust: -3, socialConflicts: 5 } }, reputation: { 'clase-media': -4, ongs: 4 } },
+      turnOccurred: turn,
+    };
+  }
+
   const lifeCandidates = [...NATIONAL_LIFE_EVENTS, ...CAMPAIGN_EVENTS].filter((candidate) =>
     candidate.when(state) && !state.eventLog.some((entry) => entry.title === candidate.title),
   );
@@ -257,6 +290,55 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
       choices: [
         { id: `ctx-energia-importar-${state.turn}`, label: 'Importar gas de emergencia', description: 'Asegurás calefacción y actividad, aun pagando la factura en divisas.', preview: simplePreview('Continuidad de servicios esenciales', 'Menos reservas'), effects: { national: { economy: { reserves: -7 }, society: { health: 3, trust: 3 } }, reputation: { 'clase-media': 4, mercados: -3 } }, delayedEffects: [] },
         { id: `ctx-energia-racionar-${state.turn}`, label: 'Racionar el consumo industrial por dos semanas', description: 'Protegés las reservas y trasladás el costo a fábricas y empleos temporarios.', preview: simplePreview('Ahorro de divisas', 'Paradas de producción'), effects: { national: { economy: { reserves: 3, gdp: -3 }, society: { employment: -2 } }, reputation: { industria: -8 } }, delayedEffects: [] },
+      ],
+    };
+  }
+
+  if (event.id.includes('reserve-excess')) {
+    return {
+      ...common,
+      id: `ctx-reserve-excess-${state.turn}`,
+      title: 'CAJA LLENA, MANOS ABIERTAS: ¿QUIÉN ADMINISTRA EL SOBRANTE?',
+      description: 'El superávit extraordinario convirtió al Tesoro en una tentación nacional. Si repartís sin control, la abundancia se vuelve contratos inflados; si no hacés nada, la calle interpreta que acumulás mientras faltan servicios.',
+      source,
+      urgency: 'alta',
+      category: 'economico',
+      choices: [
+        { id: `ctx-reserve-audit-${state.turn}`, label: 'Auditar y crear un fondo de contingencia', description: 'Reservás una parte para catástrofes y publicás cada compromiso antes de gastarlo.', preview: simplePreview('Control institucional', 'Obras demoradas'), effects: { national: { economy: { reserves: -5, investment: 2 }, governance: { institutionality: 4, corruption: -4 } }, reputation: { 'clase-media': 5, empresarios: -3 } }, delayedEffects: [] },
+        { id: `ctx-reserve-spend-${state.turn}`, label: 'Lanzar un plan de obras y alivio inmediato', description: 'La plata sale rápido hacia rutas, hospitales y tarifas. La gente ve movimiento; los contratistas también.', preview: simplePreview('Alivio visible', 'Riesgo de sobreprecios'), effects: { national: { economy: { reserves: -14, investment: 7 }, society: { health: 3, trust: 5 } }, reputation: { trabajadores: 7, empresarios: 5 } }, delayedEffects: [{ turnsDelay: 8, probability: 0.55, effects: { national: { governance: { corruption: 7 } } }, description: 'Una licitación de emergencia termina con tres empresas recién creadas y un expediente que huele a apuro.', sourceDecisionId: `ctx-reserve-excess-${state.turn}`, originTurn: 0 }] },
+        { id: `ctx-reserve-preserve-${state.turn}`, label: 'Congelar el sobrante y defender la caja', description: 'No cedés a la fiesta del gasto. La reserva queda protegida, aunque el gobierno parece estar pintando la casa mientras se cae una puerta.', preview: simplePreview('Colchón financiero', 'Malestar social'), effects: { national: { economy: { reserves: -3, gdp: -1 } }, reputation: { mercados: 6, trabajadores: -7, jubilados: -5 }, character: { popularity: -3, pragmatismo: 4 } }, delayedEffects: [] },
+      ],
+    };
+  }
+
+  if (event.id.includes('fiestas-')) {
+    return {
+      ...common,
+      id: `ctx-fiestas-${state.turn}`,
+      title: 'FIESTAS: UNA NOCHE DE PAZ TAMBIÉN SE PRESUPUESTA',
+      description: 'Los intendentes quieren una canasta de emergencia y transporte nocturno; los hospitales piden guardias reforzadas. La tradición dice brindar. El expediente pregunta cuánto cuesta que nadie quede afuera.',
+      source,
+      urgency: 'media',
+      category: 'social',
+      choices: [
+        { id: `ctx-fiestas-canasta-${state.turn}`, label: 'Financiar una red de cuidados y canastas', description: 'El Estado sostiene a los hogares más frágiles y garantiza servicios durante las celebraciones.', preview: simplePreview('Protección social', 'Menos reservas'), effects: { national: { economy: { reserves: -7 }, society: { trust: 6, poverty: -2 } }, reputation: { trabajadores: 7, jubilados: 6 } }, delayedEffects: [] },
+        { id: `ctx-fiestas-guardia-${state.turn}`, label: 'Cubrir solo hospitales y seguridad', description: 'Priorizás lo indispensable y dejás que municipios, clubes y familias resuelvan el resto.', preview: simplePreview('Servicios críticos', 'Fiestas desiguales'), effects: { national: { economy: { reserves: -3 }, society: { trust: 1, socialConflicts: 2 } }, reputation: { mercados: 3, trabajadores: -3 } }, delayedEffects: [] },
+      ],
+    };
+  }
+
+  if (event.id.includes('ano-nuevo-')) {
+    return {
+      ...common,
+      id: `ctx-ano-nuevo-${state.turn}`,
+      title: 'AÑO NUEVO: LAS PROVINCIAS PIDEN AYUDA ANTES DEL PRIMER BRINDIS',
+      description: 'La catástrofe eléctrica y las inundaciones obligan a decidir si el gobierno nacional centraliza la respuesta o entrega recursos para que cada provincia actúe por su cuenta.',
+      source,
+      urgency: 'critica',
+      category: 'ambiental',
+      choices: [
+        { id: `ctx-ano-nuevo-coordinar-${state.turn}`, label: 'Coordinar un operativo federal de emergencia', description: 'Movilizás fondos, cuadrillas y hospitales con un mando único para recuperar servicios básicos.', preview: simplePreview('Respuesta rápida', 'Costo fiscal'), effects: { national: { economy: { reserves: -9, investment: 3 }, society: { health: 5, trust: 5, socialConflicts: -4 } }, reputation: { 'clase-media': 6, ongs: 3 } }, delayedEffects: [] },
+        { id: `ctx-ano-nuevo-provincias-${state.turn}`, label: 'Transferir fondos y dejar que cada provincia resuelva', description: 'Mandás recursos con autonomía local; la velocidad puede mejorar, pero también las desigualdades entre gobernadores.', preview: simplePreview('Federalismo operativo', 'Respuesta desigual'), effects: { national: { economy: { reserves: -6 }, governance: { institutionality: 2 } }, reputation: { campo: 4, 'clase-media': -3 } }, delayedEffects: [] },
       ],
     };
   }

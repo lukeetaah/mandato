@@ -13,6 +13,7 @@ import { Badge } from '@components/ui/Badge';
 import { REPUTATION_LABELS, HOUSING_LABELS, HOUSING_SATIRE } from '@engine/constants';
 
 import { PresidentialDesk } from '@components/game/PresidentialDesk';
+import { JudicialTrial } from '@components/game/JudicialTrial';
 
 export const GameView: React.FC = () => {
   const activeTab = useUIStore((s) => s.activeTab);
@@ -23,6 +24,17 @@ export const GameView: React.FC = () => {
   if (!gameState) return null;
 
   const { pendingDecisions, provinces, reputation, eventLog, patterns, character } = gameState;
+
+  if (gameState.phase === 'trial') {
+    const trialDecision = pendingDecisions.find((decision) => decision.id.startsWith('trial-'));
+    if (trialDecision) {
+      return (
+        <MainLayout>
+          <JudicialTrial decision={trialDecision} />
+        </MainLayout>
+      );
+    }
+  }
 
   return (
     <MainLayout>

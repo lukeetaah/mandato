@@ -70,7 +70,7 @@ export const HemerotecaModal: React.FC<HemerotecaModalProps> = ({
             </p>
           </div>
 
-          {/* Secciones de Columnas y Caricatura */}
+          {/* Secciones de Columnas y frase de época */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
             <div className="p-3 bg-[#ede0c4] rounded-lg border border-[#c4b38a]">
               <h4 className="font-bold text-slate-950 border-b border-slate-700 pb-1 mb-2">Editorial de la época</h4>
@@ -80,9 +80,9 @@ export const HemerotecaModal: React.FC<HemerotecaModalProps> = ({
             </div>
 
             <div className="p-3 bg-[#ede0c4] rounded-lg border border-[#c4b38a]">
-              <h4 className="font-bold text-slate-950 border-b border-slate-700 pb-1 mb-2">Humor gráfico / Caricatura</h4>
+              <h4 className="font-bold text-slate-950 border-b border-slate-700 pb-1 mb-2">Frase de época</h4>
               <div className="p-3 bg-[#e0d0b0] rounded text-center italic text-slate-800 text-[11px]">
-                🎨 "{currentIssue.caricatureCaption}"
+                🖋️ {currentIssue.caricatureCaption}
               </div>
             </div>
           </div>
