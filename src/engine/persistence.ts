@@ -13,6 +13,8 @@ import type { GameState, StoredGame } from './types';
 import { SAVE_KEY, SAVE_VERSION } from './types';
 import { createNewGame } from './simulation';
 
+const LEGACY_SAVE_KEYS = ['mi-mandato-v3'];
+
 // ─────────────────────────────────────────────
 // Persistence Adapter (abstracción para Supabase)
 // ─────────────────────────────────────────────
@@ -57,7 +59,7 @@ export function saveGame(state: GameState): void {
 
 export function loadGame(): GameState | null {
   if (!isBrowser()) return null;
-  const raw = window.localStorage.getItem(SAVE_KEY);
+  const raw = window.localStorage.getItem(SAVE_KEY) ?? LEGACY_SAVE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean) ?? null;
   if (!raw) return null;
 
   try {
@@ -71,7 +73,7 @@ export function loadGame(): GameState | null {
 
 export function hasSavedGame(): boolean {
   if (!isBrowser()) return false;
-  const raw = window.localStorage.getItem(SAVE_KEY);
+  const raw = window.localStorage.getItem(SAVE_KEY) ?? LEGACY_SAVE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean) ?? null;
   if (!raw) return false;
   try {
     return normalizeStoredGame(JSON.parse(raw)) !== null;
@@ -93,7 +95,7 @@ function normalizeStoredGame(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null;
 
   const maybe = value as Partial<StoredGame>;
-  if (maybe.version !== SAVE_VERSION) return null;
+  if (maybe.version !== SAVE_VERSION && maybe.version !== 3) return null;
   if (!maybe.state || typeof maybe.state !== 'object') return null;
 
   const state = maybe.state;

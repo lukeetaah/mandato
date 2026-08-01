@@ -12,6 +12,24 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
   const calendar = state.calendar ?? { month: 1, year: 2032 };
   const monthName = MONTH_NAMES[(calendar.month ?? 1) - 1] ?? 'Enero';
   const headlines: HeadlineItem[] = [];
+  const usedTitles = new Set(
+    (state.hemeroteca ?? []).slice(0, 60).flatMap((issue) => [issue.mainHeadline, ...issue.secondaryHeadlines]).map((headline) => headline.title),
+  );
+  const uniqueTitle = (title: string, outlet: string) => usedTitles.has(title)
+    ? `${title} — nueva lectura de ${outlet} en ${monthName} de ${calendar.year}`
+    : title;
+
+  // Diario, TV y redes comparten el hecho; cada uno lo interpreta desde su propia lente.
+  const recentStory = [...(eventLog ?? [])].reverse().find((entry) => entry.type === 'event' || entry.type === 'election' || entry.type === 'decision');
+  if (recentStory) {
+    const topic = recentStory.title.replace(/^[^\p{L}\p{N}]*/u, '');
+    const storyCategory = recentStory.type === 'decision' ? 'politico' : 'social';
+    headlines.push(
+      { id: `hl-story-diary-${turn}`, outletName: 'El Diario del Sur', title: uniqueTitle(topic, 'El Diario del Sur'), subhead: recentStory.description, category: storyCategory, bias: 'oficialista' },
+      { id: `hl-story-tv-${turn}`, outletName: 'Canal 11 Red Federal', title: uniqueTitle(`EN VIVO: ${topic}`, 'Canal 11'), subhead: `El noticiero sigue las consecuencias en la calle: ${recentStory.emotionalText ?? recentStory.description}`, category: storyCategory, bias: 'opositor' },
+      { id: `hl-story-redes-${turn}`, outletName: 'Redes del Sur', title: uniqueTitle(`REDES DISCUTEN: ${topic}`, 'Redes del Sur'), subhead: 'La conversación gira alrededor del mismo hecho; entre ironías y reclamos, nadie lo interpreta igual.', category: storyCategory, bias: 'sensacionalista' },
+    );
+  }
 
   // 0. TITULAR DE DECISIÓN RECIENTE (si el jugador tomó una medida)
   const recentDecisions = (eventLog ?? []).filter((l) => l.type === 'decision').slice(-2);
@@ -190,5 +208,10 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
     bias: 'satirico',
   });
 
-  return headlines;
+  return headlines.map((headline, index) => ({
+    ...headline,
+    title: usedTitles.has(headline.title) && !headline.title.includes('nueva lectura')
+      ? `${headline.title} — edición ${1000 + turn}.${index + 1}`
+      : headline.title,
+  }));
 }

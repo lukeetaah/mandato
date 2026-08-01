@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { GameState, DeskObject, Decision } from '@engine/types';
 import { useGameStore } from '@stores/game-store';
 import { Button } from '@components/ui/Button';
+import { getPacingMode } from '@engine/simulation';
 
 export interface PresidentialDeskProps {
   gameState: GameState;
@@ -21,6 +22,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const visibleObjects = safeDeskObjects.filter(obj => !dismissedObjects.has(obj.id));
   const hasDecisionItems = visibleObjects.some(obj => obj.associatedDecisionId);
   const hasAnyItems = visibleObjects.length > 0;
+  const pacingMode = getPacingMode(gameState);
 
   const timeGradients: Record<string, string> = {
     mañana: 'from-amber-900/40 via-sky-950/80 to-slate-950',
@@ -55,10 +57,9 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
     if (!activeDecision || !activeObject) return;
     if (selectedChoiceId === choiceId) {
       makeChoice(activeDecision, choiceId);
-      // No necesitamos dismiss manual: executeChoice regenera deskObjects sin esta decisión
       setActiveObject(null);
       setSelectedChoiceId(null);
-      setDismissedObjects(new Set()); // Reset porque los IDs cambiaron
+      setDismissedObjects(new Set());
     } else {
       setSelectedChoiceId(choiceId);
     }
@@ -66,7 +67,6 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
   const handleAdvance = () => {
     if (hasDecisionItems) {
-      // Hay decisiones sin tomar — advertir
       setShowSkipWarning(true);
       return;
     }
@@ -115,7 +115,6 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d7ccc8_1px,transparent_1px)] [background-size:24px_24px]" />
 
         <div className="flex justify-end items-center z-10 text-xs text-amber-300/70 font-sans mb-4">
-
           <div className="flex items-center gap-3">
             <div className="text-right">
               <span className="block text-[10px] text-amber-400/60 uppercase tracking-wider font-bold">Reservas</span>
@@ -186,7 +185,9 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           <div className="my-auto z-10 text-center py-16">
             <span className="text-4xl block mb-4">🏛️</span>
             <p className="text-amber-300/60 text-sm font-sans">El escritorio está despejado.</p>
-            <p className="text-amber-300/40 text-xs font-sans mt-1">No hay asuntos pendientes. Podés avanzar la quincena.</p>
+            <p className="text-amber-300/40 text-xs font-sans mt-1">
+              No hay emergencias inmediatas. Podés avanzar quincena a quincena o realizar un Paneo Trimestral.
+            </p>
           </div>
         )}
 
@@ -207,7 +208,6 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                   </h2>
                 </div>
               </div>
-              {/* Botón de cerrar: solo archiva si NO tiene decisión pendiente */}
               {activeDecision ? (
                 <button
                   onClick={() => { setActiveObject(null); setSelectedChoiceId(null); }}
@@ -319,18 +319,23 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
             República del Sur — Período Constitucional 2032-2036
           </span>
 
-          <Button
-            variant={hasAnyItems ? 'ghost' : 'gold'}
-            size="md"
-            onClick={hasAnyItems ? handleAdvance : () => { nextTurn(); setDismissedObjects(new Set()); }}
-            className={hasDecisionItems ? 'text-amber-400' : hasAnyItems ? 'opacity-70 text-amber-400' : 'shadow-xl shadow-amber-500/20'}
-          >
-            {hasDecisionItems
-              ? '⚖️ Asuntos que requieren decisión'
-              : hasAnyItems
-              ? '📋 Revisar asuntos pendientes'
-              : 'Avanzar quincena ➔'}
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline text-[10px] text-amber-300/60 uppercase tracking-wider">
+              {pacingMode === 'acelerado' ? 'Ritmo acelerado: informe al proximo asunto' : 'Ritmo quincenal: decisiones activas'}
+            </span>
+            <Button
+              variant={hasAnyItems ? 'ghost' : 'gold'}
+              size="md"
+              onClick={hasAnyItems ? handleAdvance : () => { nextTurn(); setDismissedObjects(new Set()); }}
+              className={hasDecisionItems ? 'text-amber-400' : hasAnyItems ? 'opacity-70 text-amber-400' : 'shadow-xl shadow-amber-500/20'}
+            >
+              {hasDecisionItems
+                ? '⚖️ Asuntos que requieren decisión'
+                : hasAnyItems
+                ? '📋 Revisar asuntos pendientes'
+                : 'Avanzar quincena ➔'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -76,6 +76,124 @@ export const DECISION_POOL: Decision[] = [
         },
         delayedEffects: [],
       },
+      {
+        id: 'choice-sostener-reservas-propias',
+        label: 'No intervenir — Sostener liquidez con reservas corrientes',
+        description: 'Rechazás acuerdos o ventas de emergencia. Confiás en que el nivel de divisas actual alcance para cubrir los vencimientos sin sobresaltos.',
+        preview: {
+          gains: [{ icon: '🏛️', label: 'Autonomía de gestión sin deuda extra', magnitude: 'moderado' }],
+          losses: [{ icon: '📉', label: 'Margen de liquidez ajustado', magnitude: 'moderado' }],
+          risks: [{ icon: '⚠️', label: 'Riesgo de tensiones si las divisas caen', magnitude: 'moderado' }],
+          beneficiaries: ['Clase Media', 'Jóvenes'],
+          opponents: ['Mercados'],
+        },
+        effects: {
+          national: { economy: { reserves: -4 } },
+          reputation: { 'clase-media': 6, mercados: -6 },
+          character: { idealismo: 6, pragmatismo: -4 },
+        },
+        delayedEffects: [],
+      },
+    ],
+  },
+
+  // ─── DECISIONES TRÁGICAS, CÓMICAS Y CULTURALES (LORE) ───
+  {
+    id: 'dec-mundial-feriado',
+    title: '🎉 ¡EL PAÍS LLEGÓ A LA FINAL DEL MUNDIAL DE FÚTBOL!',
+    description: 'La selección nacional disputará el partido decisivo este domingo. Los sindicatos y alcaldes exigen decretar feriado nacional de 48 horas para "celebrar la gloria o procesar el duelo". Los empresarios advierten pérdidas millonarias.',
+    source: 'Jefe de Gabinete & Unión Sindical',
+    urgency: 'alta',
+    category: 'politico',
+    repeatable: false,
+    cooldown: 0,
+    requirements: [],
+    choices: [
+      {
+        id: 'choice-feriado-total',
+        label: 'Decretar Feriado Nacional de 48 horas con Asueto Total',
+        description: 'Parás el país entero. Millones celebran en las calles con banderas y cornetas. La industria pierde un día de producción.',
+        preview: {
+          gains: [{ icon: '🎉', label: 'Popularidad y fiesta popular masiva', magnitude: 'fuerte' }],
+          losses: [{ icon: '🏭', label: 'Actividad industrial y recaudación fiscal', magnitude: 'fuerte' }],
+          risks: [{ icon: '🍺', label: 'Desbordes en las plazas y transporte público', magnitude: 'moderado' }],
+          beneficiaries: ['Trabajadores', 'Jóvenes'],
+          opponents: ['Empresarios', 'Mercados'],
+        },
+        effects: {
+          national: { economy: { gdp: -2, reserves: -1 }, society: { trust: 12, socialConflicts: -10 } },
+          reputation: { trabajadores: 16, jovenes: 18, mercados: -14, empresarios: -16 },
+          character: { popularity: 14, ego: 10, idealismo: 8 },
+        },
+        delayedEffects: [],
+      },
+      {
+        id: 'choice-sin-feriado',
+        label: 'Mantener día hábil estricto: "El país se saca adelante trabajando"',
+        description: 'Rechazás el feriado. Te ganas el aplauso de las cámaras empresarias pero el 70% de los empleados falta a sus puestos de todos modos.',
+        preview: {
+          gains: [{ icon: '📊', label: 'Respeto de los sectores productivos', magnitude: 'moderado' }],
+          losses: [{ icon: '😡', label: 'Furia popular y ausentismo récord', magnitude: 'fuerte' }],
+          risks: [{ icon: '📢', label: 'Cacerolazos y abucheos en estadios', magnitude: 'fuerte' }],
+          beneficiaries: ['Empresarios', 'Mercados'],
+          opponents: ['Trabajadores', 'Jóvenes'],
+        },
+        effects: {
+          national: { economy: { gdp: 1 }, society: { trust: -10 } },
+          reputation: { empresarios: 12, mercados: 10, trabajadores: -18, jovenes: -20 },
+          character: { popularity: -12, pragmatismo: 10 },
+        },
+        delayedEffects: [],
+      },
+    ],
+  },
+  {
+    id: 'dec-mascota-cadena',
+    title: '🐶 POLÉMICA POR USO DE CADENA NACIONAL',
+    description: 'En un impulso de comunicación humana, transmitiste por Cadena Nacional de Radio y TV un mensaje especial por el cumpleaños de tu mascota. Los medios opositores hablan de "bochorno institucional".',
+    source: 'Secretario de Comunicación',
+    urgency: 'media',
+    category: 'mediatico',
+    repeatable: false,
+    cooldown: 0,
+    requirements: [],
+    choices: [
+      {
+        id: 'choice-defender-mascota',
+        label: 'Ratificar el mensaje: "La empatía con los animales también es política de Estado"',
+        description: 'Publicás fotos con la mascota en redes oficiales. Se viralizan memes a favor y en contra.',
+        preview: {
+          gains: [{ icon: '🐶', label: 'Empatía en sectores jóvenes y proteccionistas', magnitude: 'moderado' }],
+          losses: [{ icon: '📰', label: 'Respeto de analistas políticos e instituciones', magnitude: 'moderado' }],
+          risks: [{ icon: '🤡', label: 'Sátiras permanentes en programas de humor', magnitude: 'fuerte' }],
+          beneficiaries: ['Jóvenes', 'ONGs'],
+          opponents: ['Oposición', 'Mercados'],
+        },
+        effects: {
+          national: { governance: { institutionality: -4 } },
+          reputation: { jovenes: 10, ongs: 12, mercados: -8 },
+          character: { popularity: -2, ego: 8 },
+        },
+        delayedEffects: [],
+      },
+      {
+        id: 'choice-disculpa-tecnica',
+        label: 'Emitir aclaración técnica alegando error de programación en la red federal',
+        description: 'Le echás la culpa a un técnico de guardia y prometés revisar los protocolos de transmisión.',
+        preview: {
+          gains: [{ icon: '🛡️', label: 'Control de daños institucional', magnitude: 'leve' }],
+          losses: [{ icon: '🤦', label: 'Imagen de falta de control interno', magnitude: 'leve' }],
+          risks: [{ icon: '📰', label: 'Filtración del técnico despedido', magnitude: 'leve' }],
+          beneficiaries: ['Clase Media'],
+          opponents: ['Trabajadores'],
+        },
+        effects: {
+          national: { governance: { institutionality: 2 } },
+          reputation: { 'clase-media': 4 },
+          character: { pragmatismo: 4 },
+        },
+        delayedEffects: [],
+      },
     ],
   },
 
@@ -454,20 +572,7 @@ export const DECISION_POOL: Decision[] = [
 ];
 
 export function getEligibleDecisions(state: GameState): Decision[] {
-  const takenChoiceIds = new Set(state.decisionHistory.map((dh) => dh.choiceId));
-
-  return DECISION_POOL.map((d) => {
-    const remainingChoices = d.choices.filter((choice) => !takenChoiceIds.has(choice.id));
-    return {
-      ...d,
-      choices: remainingChoices,
-    };
-  }).filter((d) => {
-    // Si la decisión ya no tiene opciones sin elegir, no es elegible
-    if (d.choices.length === 0) {
-      return false;
-    }
-
+  return DECISION_POOL.filter((d) => {
     const history = state.decisionHistory.filter((dh) => dh.id === d.id);
     if (history.length > 0 && !d.repeatable) {
       return false;
@@ -479,6 +584,32 @@ export function getEligibleDecisions(state: GameState): Decision[] {
         return false;
       }
     }
-    return true;
+    return isRelevantToCountry(d.id, state);
   });
+}
+
+/** Evita expedientes absurdos: cada tema aparece cuando el país tiene una razón para discutirlo. */
+function isRelevantToCountry(decisionId: string, state: GameState): boolean {
+  const { economy, society } = state.nation;
+
+  switch (decisionId) {
+    case 'dec-crisis-reservas-urgente':
+      return economy.reserves < 42;
+    case 'dec-cepo-cambiario':
+      return economy.reserves < 55 || economy.inflation > 58;
+    case 'dec-fmi-renegociacion':
+      return economy.debt > 48 || economy.reserves < 28;
+    case 'dec-retenciones-agro':
+      return economy.reserves < 62 || state.reputation.campo < 42;
+    case 'dec-paritaria-docente':
+      return society.education < 57 || state.reputation.docentes < 45 || economy.inflation > 46;
+    case 'dec-subsidio-transporte':
+      return economy.inflation > 42 || society.socialConflicts > 30;
+    case 'dec-mundial-feriado':
+      return state.turn >= 10 && state.turn <= 34;
+    case 'dec-mascota-cadena':
+      return state.character.popularity < 48 || state.socialMedia.memeAboutPlayer;
+    default:
+      return true;
+  }
 }

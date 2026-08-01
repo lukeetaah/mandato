@@ -2,8 +2,8 @@
  * MI MANDATO — Type System
  */
 
-export const SAVE_VERSION = 3;
-export const SAVE_KEY = 'mi-mandato-v3';
+export const SAVE_VERSION = 4;
+export const SAVE_KEY = 'mi-mandato-v4';
 
 export type ActorId = string;
 export type PartyId = string;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { GameState, Character, Decision } from '@engine/types';
-import { createNewGame, advanceTurn, executeChoice } from '@engine/simulation';
+import { createNewGame, advanceMandate, executeChoice } from '@engine/simulation';
 import { saveGame, loadGame, hasSavedGame, deleteSave } from '@engine/persistence';
 
 interface GameStore {
@@ -38,7 +38,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   nextTurn: () => {
     const current = get().gameState;
     if (!current) return;
-    const nextState = advanceTurn(current);
+    const nextState = advanceMandate(current);
     saveGame(nextState);
     set({ gameState: nextState });
   },

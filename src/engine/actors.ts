@@ -223,3 +223,28 @@ export function recordActorMemory(actor: Actor, turn: number, event: string, sen
     ],
   };
 }
+
+/**
+ * El gabinete no queda congelado entre decisiones: los ocho actores observan,
+ * acumulan influencia y cambian de humor con el paso del tiempo.
+ */
+export function advanceActorWorld(actors: Actor[], turn: number, seed: number): Actor[] {
+  return actors.map((actor, index) => {
+    const pulse = ((seed + turn * 17 + index * 11) % 5) - 2;
+    const recentMemory = actor.memory[0];
+    const memoryPressure = recentMemory && turn - recentMemory.turn <= 4 ? recentMemory.sentiment * 0.2 : 0;
+    const ambitionPush = actor.ambition > 75 ? 1 : actor.ambition < 35 ? -1 : 0;
+    const disposition = Math.max(-100, Math.min(100, actor.disposition + Math.round(memoryPressure)));
+
+    return {
+      ...actor,
+      disposition,
+      loyalty: Math.max(0, Math.min(100, actor.loyalty + (disposition > 35 ? 1 : disposition < -35 ? -1 : 0))),
+      influence: Math.max(0, Math.min(100, actor.influence + pulse + ambitionPush)),
+      memory: actor.memory.map((memory, memoryIndex) => ({
+        ...memory,
+        decayed: memoryIndex > 2 || turn - memory.turn > 8,
+      })),
+    };
+  });
+}
