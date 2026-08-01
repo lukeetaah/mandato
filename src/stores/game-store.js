@@ -33,6 +33,13 @@ export const useGameStore = create((set, get) => ({
         saveGame(nextState);
         set({ gameState: nextState });
     },
+    saveCurrentGame: () => {
+        const current = get().gameState;
+        if (current) {
+            saveGame(current);
+            set({ hasSaveAvailable: true });
+        }
+    },
     resetGame: () => {
         deleteSave();
         set({ gameState: null, hasSaveAvailable: false });

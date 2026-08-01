@@ -12,6 +12,7 @@ interface GameStore {
   loadExistingGame: () => boolean;
   nextTurn: () => void;
   makeChoice: (decision: Decision, choiceId: string) => void;
+  saveCurrentGame: () => void;
   resetGame: () => void;
 }
 
@@ -48,6 +49,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const nextState = executeChoice(current, decision, choiceId);
     saveGame(nextState);
     set({ gameState: nextState });
+  },
+
+  saveCurrentGame: () => {
+    const current = get().gameState;
+    if (current) {
+      saveGame(current);
+      set({ hasSaveAvailable: true });
+    }
   },
 
   resetGame: () => {
