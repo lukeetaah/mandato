@@ -12,8 +12,10 @@
 import type { GameState, StoredGame } from './types';
 import { SAVE_KEY, SAVE_VERSION } from './types';
 import { createNewGame } from './simulation';
+import { dedupeNationalScars } from './scars';
 
 const LEGACY_SAVE_KEYS = ['mi-mandato-v3'];
+const ALL_SAVE_KEYS = [SAVE_KEY, ...LEGACY_SAVE_KEYS];
 
 // ─────────────────────────────────────────────
 // Persistence Adapter (abstracción para Supabase)
@@ -84,7 +86,7 @@ export function hasSavedGame(): boolean {
 
 export function deleteSave(): void {
   if (!isBrowser()) return;
-  window.localStorage.removeItem(SAVE_KEY);
+  ALL_SAVE_KEYS.forEach((key) => window.localStorage.removeItem(key));
 }
 
 // ─────────────────────────────────────────────
@@ -129,6 +131,7 @@ function normalizeStoredGame(value: unknown): GameState | null {
       ? { ...fresh.sectorTrustMemory, ...state.sectorTrustMemory }
       : fresh.sectorTrustMemory,
     annualDocumentaries: Array.isArray(state.annualDocumentaries) ? state.annualDocumentaries : [],
+    scars: Array.isArray(state.scars) ? dedupeNationalScars(state.scars) : fresh.scars,
     // Garantizar arrays
     provinces: Array.isArray(state.provinces) ? state.provinces : fresh.provinces,
     parties: Array.isArray(state.parties) ? state.parties : fresh.parties,

@@ -30,8 +30,8 @@ export const GameView: React.FC = () => {
 
       {activeTab === 'dashboard' && (
         <div className="space-y-6 max-w-6xl mx-auto">
-          <PresidentialDesk gameState={gameState} />
           <Dashboard />
+          <PresidentialDesk gameState={gameState} />
         </div>
       )}
 

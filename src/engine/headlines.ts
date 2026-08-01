@@ -7,6 +7,54 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+function enrichHeadline(headline: HeadlineItem, state: GameState): HeadlineItem {
+  const inflation = Math.round(state.nation.economy.inflation);
+  const reserves = Math.round(state.nation.economy.reserves);
+  const popularity = Math.round(state.character.popularity);
+
+  const depthByCategory: Record<HeadlineItem['category'], { impact: string; cause: string }> = {
+    economico: {
+      impact: `En la calle, el dato se transforma en decisiones concretas: familias que cambian marcas, comercios que acortan plazos y trabajadores que llegan al mostrador con menos margen que la semana anterior.`,
+      cause: `El trasfondo combina una inflación del ${inflation}%, reservas del Banco Central en ${reserves}% y un gabinete obligado a elegir qué costo absorbe el Estado y cuál traslada a la sociedad.`,
+    },
+    politico: {
+      impact: `La discusión no queda encerrada en los despachos: intendentes, legisladores y aliados empiezan a medir cuánto apoyo conserva el gobierno cuando llega la hora de votar o salir a explicar una medida.`,
+      cause: `La tensión se alimenta de una aprobación presidencial del ${popularity}% y de una coalición que necesita convertir acuerdos, rumores y promesas en una mayoría que aguante la próxima crisis.`,
+    },
+    social: {
+      impact: `En los barrios, la noticia se mide en horas de espera, changas perdidas, aulas vacías y discusiones familiares. El malestar deja de ser una estadística cuando altera la rutina de quienes sostienen el país todos los días.`,
+      cause: `La presión viene acumulándose en las calles: los precios, el empleo y la respuesta desigual de las provincias convierten un problema sectorial en una pregunta incómoda sobre la capacidad del Estado.`,
+    },
+    satirico: {
+      impact: `Mientras el funcionario intenta explicar el expediente, la ciudadanía ya lo convirtió en meme, sobremesa y apodo. La risa funciona como desahogo, pero también deja una marca sobre la confianza en las instituciones.`,
+      cause: `El episodio creció porque mezcla burocracia, recursos públicos y una cuota de absurdo que ningún vocero logra ordenar. En la República del Sur, hasta una compra menor puede terminar discutiendo la seriedad del gobierno.`,
+    },
+    mediatico: {
+      impact: `La noticia cambia el humor de una audiencia que ya no distingue del todo entre información, espectáculo y campaña. Cada entrevista puede sumar apoyo, pero también regalarle una frase inolvidable a los adversarios.`,
+      cause: `La pelea por el encuadre se explica por la baja confianza en los medios y por redes capaces de instalar una versión antes de que el gabinete termine de leer el parte oficial.`,
+    },
+    internacional: {
+      impact: `Para empresas, estudiantes y familias que dependen de importaciones, crédito o viajes, una frase diplomática puede terminar afectando precios, empleos y oportunidades concretas.`,
+      cause: `El margen externo se achica cuando las reservas y la credibilidad financiera obligan a negociar cada anuncio con socios que también tienen su propia agenda.`,
+    },
+    ambiental: {
+      impact: `La obra se vuelve visible en el momento menos ceremonial: cuando falta agua, se corta una ruta o una escuela necesita funcionar con recursos prestados. Allí se decide si la promesa pública fue planificación o escenografía.`,
+      cause: `El conflicto nace de presupuestos limitados, provincias que reclaman autonomía y un gobierno nacional que debe decidir qué inaugura, qué repara y qué posterga sin poder esconderlo bajo una cinta.`,
+    },
+    personal: {
+      impact: `Detrás del episodio hay una persona concreta intentando sostener su vida privada mientras el cargo convierte cada gesto en señal política, comentario de pasillo o material para una portada.`,
+      cause: `La noticia crece porque en este gobierno la frontera entre intimidad, reputación y poder institucional se volvió demasiado fina para que nadie la ignore.`,
+    },
+  };
+
+  const depth = depthByCategory[headline.category] ?? depthByCategory.politico;
+  return {
+    ...headline,
+    humanImpactText: headline.humanImpactText ?? depth.impact,
+    causalStoryText: headline.causalStoryText ?? depth.cause,
+  };
+}
+
 export function generateDailyHeadlines(state: GameState, rng: RngState): HeadlineItem[] {
   const { nation, character, turn, eventLog } = state;
   const calendar = state.calendar ?? { month: 1, year: 2032 };
@@ -208,10 +256,10 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
     bias: 'satirico',
   });
 
-  return headlines.map((headline, index) => ({
+  return headlines.map((headline, index) => enrichHeadline({
     ...headline,
     title: usedTitles.has(headline.title) && !headline.title.includes('nueva lectura')
       ? `${headline.title} — edición ${1000 + turn}.${index + 1}`
       : headline.title,
-  }));
+  }, state));
 }

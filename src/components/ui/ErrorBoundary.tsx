@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { deleteSave } from '@engine/persistence';
 
 interface Props {
   children: ReactNode;
@@ -35,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={() => {
-                window.localStorage.removeItem('mi-mandato-v3');
+                deleteSave();
                 window.location.reload();
               }}
               className="px-5 py-2.5 bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg hover:bg-amber-300 transition-all cursor-pointer"

@@ -152,6 +152,12 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
                       <p className="text-xs text-slate-900 leading-relaxed italic font-serif">
                         {hl.subhead}
                       </p>
+                      {isSelected && (
+                        <div className="mt-4 pt-3 border-t border-slate-400/70 space-y-2 text-xs text-slate-800 leading-relaxed font-serif">
+                          {hl.causalStoryText && <p><strong>Qué hay detrás:</strong> {hl.causalStoryText}</p>}
+                          {hl.humanImpactText && <p><strong>Por qué importa:</strong> {hl.humanImpactText}</p>}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -275,6 +281,11 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
                 <div className="text-xs md:text-sm text-slate-300 font-medium max-w-3xl leading-relaxed">
                   {activeHeadline.subhead}
                 </div>
+                {activeHeadline.causalStoryText && (
+                  <div className="mt-3 max-w-3xl text-[11px] md:text-xs text-slate-400 leading-relaxed line-clamp-3">
+                    {activeHeadline.causalStoryText} {activeHeadline.humanImpactText}
+                  </div>
+                )}
               </div>
               
               {/* Ticker de noticias en movimiento */}

@@ -23,7 +23,7 @@ import { applyReputationChanges } from './reputation';
 import { simulateProvincesTick } from './provinces';
 import { getEligibleDecisions } from './decisions';
 import { generateDailyHeadlines } from './headlines';
-import { checkForScarTrigger } from './scars';
+import { checkForScarTrigger, dedupeNationalScars } from './scars';
 import { generateContextualDecision, generateSystemicEvent } from './event-generator';
 
 const SEASONS: Array<'Verano' | 'Otoño' | 'Invierno' | 'Primavera'> = ['Verano', 'Otoño', 'Invierno', 'Primavera'];
@@ -154,15 +154,20 @@ export function buildDeskObjects(
   const objects: DeskObject[] = [];
 
   // 1. Diario impreso siempre presente en el escritorio
-  const mainHeadline = headlines[0]?.title ?? 'Sin novedades principales en la tapa.';
+  const mainHeadline = headlines[0];
   const outletName = headlines[0]?.outletName ?? 'El Diario del Sur';
   objects.push({
     id: `desk-diario-${turn}`,
     type: 'diario',
     title: outletName,
-    subtitle: mainHeadline,
+    subtitle: mainHeadline?.title ?? 'Sin novedades principales en la tapa.',
     urgency: 'media',
-    inspectText: mainHeadline,
+    inspectText: [
+      mainHeadline?.title,
+      mainHeadline?.subhead,
+      mainHeadline?.causalStoryText,
+      mainHeadline?.humanImpactText,
+    ].filter(Boolean).join('\n\n') || 'Sin novedades principales en la tapa.',
     read: false,
     positionOffset: { x: -140, y: 40 },
   });
@@ -262,18 +267,18 @@ function generateNewspaperIssue(state: GameState, rng: ReturnType<typeof createR
 
   if (recentDecisions.length > 0) {
     const lastDec = recentDecisions[recentDecisions.length - 1]!;
-    editorialText = `Tras la reciente definición respecto a "${lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '')}", las repercusiones políticas se hicieron sentir de inmediato en el Congreso y en los mercados. ${lastDec.emotionalText ?? lastDec.description}`;
+    editorialText = `Tras la reciente definición respecto a "${lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '')}", las repercusiones políticas se hicieron sentir de inmediato en el Congreso, en los mercados y en la conversación cotidiana. ${lastDec.emotionalText ?? lastDec.description} La medida todavía no puede evaluarse solo por sus números: gobernadores, sindicatos y sectores empresarios ya están preparando su propia lectura, y cada uno intenta convertir el resultado en una señal sobre el rumbo del gobierno.`;
   } else if (state.nation.economy.inflation > 60) {
-    editorialText = `Con una inflación rozando el ${Math.round(state.nation.economy.inflation)}%, la presión social sobre el despacho presidencial alcanza un punto crítico. La paciencia de los sectores productivos se agota a ritmo acelerado.`;
+    editorialText = `Con una inflación rozando el ${Math.round(state.nation.economy.inflation)}%, la presión social sobre el despacho presidencial alcanza un punto crítico. La paciencia de los sectores productivos se agota a ritmo acelerado y los hogares reorganizan compras, deudas y expectativas alrededor de una pregunta simple: cuánto tiempo más puede sostenerse la rutina sin una respuesta política visible.`;
   } else if (state.nation.economy.reserves < 20) {
-    editorialText = `El alarmante nivel de reservas en el Banco Central (${Math.round(state.nation.economy.reserves)}%) condiciona cada movimiento del gabinete. Sin divisas suficientes, las negociaciones internacionales son contrarreloj.`;
+    editorialText = `El alarmante nivel de reservas en el Banco Central (${Math.round(state.nation.economy.reserves)}%) condiciona cada movimiento del gabinete. Sin divisas suficientes, las negociaciones internacionales son contrarreloj y la escasez empieza a tener nombres concretos: insumos que no llegan, fábricas que frenan turnos y proveedores que ya no aceptan esperar.`;
   } else if (state.character.popularity > 60) {
-    editorialText = `El respaldo popular del ${Math.round(state.character.popularity)}% otorga al presidente un margen de maniobra envidiable. Sin embargo, la oposición advierte sobre los riesgos del triunfalismo antes del cierre fiscal.`;
+    editorialText = `El respaldo popular del ${Math.round(state.character.popularity)}% otorga al presidente un margen de maniobra envidiable. Sin embargo, la oposición advierte sobre los riesgos del triunfalismo antes del cierre fiscal: la misma ciudadanía que aplaude una recuperación puede cambiar de humor cuando una tarifa, un impuesto o un escándalo aterriza en su mesa.`;
   } else {
     editorialText = pick(rng, [
-      `La ${calendar.fortnight === 1 ? 'primera' : 'segunda'} quincena de ${calendar.season} pone a prueba el pulso político de la administración. Con una popularidad en ${Math.round(state.character.popularity)}%, la gobernabilidad requiere consensos constantes.`,
-      `El panorama económico marcado por un nivel de reservas del ${Math.round(state.nation.economy.reserves)}% exige máxima prudencia técnica. El gabinete busca sostener el equilibrio sin resentir la imagen pública.`,
-      `Entre la presión sindical y las demandas de los gobernadores provinciales, el oficialismo intenta ordenar su agenda parlamentaria antes del próximo cierre de sesiones.`,
+      `La ${calendar.fortnight === 1 ? 'primera' : 'segunda'} quincena de ${calendar.season} pone a prueba el pulso político de la administración. Con una popularidad en ${Math.round(state.character.popularity)}%, la gobernabilidad requiere consensos constantes y una explicación que no suene igual en el Congreso, en una fábrica y en la fila de un hospital.`,
+      `El panorama económico marcado por un nivel de reservas del ${Math.round(state.nation.economy.reserves)}% exige máxima prudencia técnica. El gabinete busca sostener el equilibrio sin resentir la imagen pública, mientras los mercados esperan señales y las provincias reclaman que el ajuste no vuelva a caer siempre sobre los mismos.`,
+      `Entre la presión sindical y las demandas de los gobernadores provinciales, el oficialismo intenta ordenar su agenda parlamentaria antes del próximo cierre de sesiones. Cada acuerdo tiene una letra chica y cada demora deja espacio para que la oposición escriba su propia versión de lo que está pasando.`,
     ]);
   }
 
@@ -473,7 +478,7 @@ export function advanceTurn(state: GameState): GameState {
   let currentActors = advanceActorWorld(state.actors, nextTurn, state.seed);
   let nextPhase: GameState['phase'] = state.phase;
   const newLogs: LogEntry[] = [];
-  const nextScars = [...state.scars];
+  const nextScars = dedupeNationalScars(state.scars);
   const nextElections = [...state.electionsHistory];
 
   // 2. Procesar Efectos Diferidos (Bombas de tiempo)
@@ -577,7 +582,7 @@ export function advanceTurn(state: GameState): GameState {
       winnerPartyName: reelected ? `${currentCharacter.name} ${currentCharacter.surname}` : 'Frente Opositor',
       playerPopularityAtElection: presidentialScore,
       congressMajority: state.electionsHistory[state.electionsHistory.length - 1]?.congressMajority ?? false,
-      description: reelected ? 'ReelecciÃ³n presidencial con una campaÃ±a apoyada en debate y territorio.' : 'Cambio de gobierno; el expresidente conserva una banca de influencia en la oposiciÃ³n.',
+      description: reelected ? 'Reelección presidencial con una campaña apoyada en debate y territorio.' : 'Cambio de gobierno; el expresidente conserva una banca de influencia en la oposición.',
     });
     if (!reelected) {
       nextPhase = 'opposition';

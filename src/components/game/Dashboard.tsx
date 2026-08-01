@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '@stores/game-store';
+import type { NationalScar } from '@engine/types';
+import { dedupeNationalScars } from '@engine/scars';
 import { Card } from '@components/ui/Card';
 import { StatBar } from '@components/ui/StatBar';
 import { HeadlineBanner } from './HeadlineBanner';
@@ -11,36 +13,13 @@ export const Dashboard: React.FC = () => {
   if (!gameState) return null;
 
   const { nation, character, calendar, dailyHeadlines, scars } = gameState;
+  const [selectedScarId, setSelectedScarId] = useState<string | null>(null);
+  const uniqueScars = dedupeNationalScars(scars);
+  const selectedScar: NationalScar | undefined = uniqueScars.find((scar) => scar.id === selectedScarId);
 
   return (
     <div className="space-y-6">
-      {/* Calendario + Elecciones */}
-      <CalendarWidget calendar={calendar} />
-
-      {/* Titulares del día */}
-      <HeadlineBanner headlines={dailyHeadlines} />
-
-      {/* Cicatrices Nacionales (Memoria Viva) */}
-      {scars.length > 0 && (
-        <div className="glass-panel p-4 rounded-xl border border-amber-500/30">
-          <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-            <span>📜</span> Cicatrices históricas del país
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {scars.map((scar) => (
-              <div
-                key={scar.id}
-                className="px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2"
-              >
-                <span>{scar.icon}</span>
-                <span><b>{scar.title}</b> ({scar.year})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Grid de indicadores macro */}
+      {/* Indicadores visibles antes del escritorio presidencial */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
         {/* Tu gestión */}
@@ -87,6 +66,45 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Calendario + Elecciones */}
+      <CalendarWidget calendar={calendar} />
+
+      {/* Titulares del día */}
+      <HeadlineBanner headlines={dailyHeadlines} />
+
+      {/* Cicatrices Nacionales (Memoria Viva) */}
+      {uniqueScars.length > 0 && (
+        <div className="glass-panel p-4 rounded-xl border border-amber-500/30">
+          <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+            <span>📜</span> Cicatrices históricas del país
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {uniqueScars.map((scar) => (
+              <button
+                key={scar.id}
+                type="button"
+                aria-pressed={selectedScarId === scar.id}
+                onClick={() => setSelectedScarId((current) => current === scar.id ? null : scar.id)}
+                className={`px-3 py-1.5 rounded-lg bg-amber-950/40 border text-amber-200 text-xs flex items-center gap-2 text-left transition-colors cursor-pointer ${selectedScarId === scar.id ? 'border-amber-300 bg-amber-900/60' : 'border-amber-500/30 hover:border-amber-300/70'}`}
+              >
+                <span>{scar.icon}</span>
+                <span><b>{scar.title}</b> ({scar.year})</span>
+              </button>
+            ))}
+          </div>
+          {selectedScar && (
+            <div className="mt-3 rounded-xl border border-amber-500/30 bg-slate-950/60 p-4 text-xs text-slate-300 leading-relaxed">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <h5 className="font-bold text-amber-200">{selectedScar.icon} {selectedScar.title}</h5>
+                <span className="text-[10px] uppercase tracking-wider text-amber-400/80">Turno {selectedScar.originTurn}</span>
+              </div>
+              <p>{selectedScar.description}</p>
+              <p className="mt-2 italic text-amber-200/80">{selectedScar.mediaEcho}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alertas contextuales */}
       {character.stress > 70 && (
