@@ -7,6 +7,16 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+function normalizeHeadlineTitle(title: string): string {
+  return title
+    .replace(/^EN VIVO:\s*/i, '')
+    .replace(/^REDES DISCUTEN:\s*/i, '')
+    .replace(/^IMPACTO DE LA MEDIDA:\s*/i, '')
+    .replace(/\s+—\s+(nueva lectura|edición)\b.*$/i, '')
+    .trim()
+    .toLocaleLowerCase('es');
+}
+
 function enrichHeadline(headline: HeadlineItem, state: GameState): HeadlineItem {
   const inflation = Math.round(state.nation.economy.inflation);
   const reserves = Math.round(state.nation.economy.reserves);
@@ -47,7 +57,24 @@ function enrichHeadline(headline: HeadlineItem, state: GameState): HeadlineItem 
     },
   };
 
-  const depth = depthByCategory[headline.category] ?? depthByCategory.politico;
+  const title = headline.title.toLocaleLowerCase('es');
+  const topicDepth = title.includes('transporte') || title.includes('tarifa') || title.includes('colectivo')
+    ? {
+      impact: 'La medida se siente en la parada, en el boleto y en el tiempo que tarda cada trabajador en llegar a fin de mes. Una tarifa puede ordenar una planilla y, al mismo tiempo, convertir un viaje cotidiano en una decisión familiar.',
+      cause: 'El expediente nació del choque entre subsidios, costos de combustible, concesiones y reclamos provinciales. El gobierno debe mostrar quién paga el servicio y qué nivel de frecuencia está dispuesto a garantizar.',
+    }
+    : title.includes('organismo') || title.includes('deuda') || title.includes('crédito') || title.includes('fmi')
+    ? {
+      impact: 'El acuerdo puede cambiar salarios, tarifas, empleo público y acceso al crédito. En los hogares se traduce en cuotas, precios y la sensación de que una negociación hecha lejos del barrio acaba de entrar por la ventana.',
+      cause: 'La discusión combina vencimientos, reservas escasas y condiciones que el organismo acreedor presenta como técnica, aunque cada cláusula redistribuye costos entre provincias, empresas y trabajadores.',
+    }
+    : title.includes('reserva') || title.includes('divisa') || title.includes('banco central')
+    ? {
+      impact: 'Cuando faltan dólares, aparecen faltantes, demoras y precios que cambian antes de que el salario llegue a la cuenta. Cuando sobran de golpe, también aparece la tentación de gastarlos como si el país hubiera dejado de tener problemas.',
+      cause: 'El Banco Central funciona como termómetro político: cada movimiento de reservas altera importaciones, expectativas, crédito y el margen que conserva el gobierno para prometer una salida.',
+    }
+    : null;
+  const depth = topicDepth ?? (depthByCategory[headline.category] ?? depthByCategory.politico);
   return {
     ...headline,
     humanImpactText: headline.humanImpactText ?? depth.impact,
@@ -61,36 +88,42 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
   const monthName = MONTH_NAMES[(calendar.month ?? 1) - 1] ?? 'Enero';
   const headlines: HeadlineItem[] = [];
   const usedTitles = new Set(
-    (state.hemeroteca ?? []).slice(0, 60).flatMap((issue) => [issue.mainHeadline, ...issue.secondaryHeadlines]).map((headline) => headline.title),
+    [
+      ...(state.dailyHeadlines ?? []),
+      ...(state.hemeroteca ?? []).slice(0, 60).flatMap((issue) => [issue.mainHeadline, ...issue.secondaryHeadlines]),
+    ].map((headline) => normalizeHeadlineTitle(headline.title)),
   );
-  const uniqueTitle = (title: string, outlet: string) => usedTitles.has(title)
-    ? `${title} — nueva lectura de ${outlet} en ${monthName} de ${calendar.year}`
-    : title;
+  const uniqueTitle = (title: string) => title;
 
   // Diario, TV y redes comparten el hecho; cada uno lo interpreta desde su propia lente.
   const recentStory = [...(eventLog ?? [])].reverse().find((entry) => entry.type === 'event' || entry.type === 'election' || entry.type === 'decision');
   if (recentStory) {
     const topic = recentStory.title.replace(/^[^\p{L}\p{N}]*/u, '');
     const storyCategory = recentStory.type === 'decision' ? 'politico' : 'social';
-    headlines.push(
-      { id: `hl-story-diary-${turn}`, outletName: 'El Diario del Sur', title: uniqueTitle(topic, 'El Diario del Sur'), subhead: recentStory.description, category: storyCategory, bias: 'oficialista' },
-      { id: `hl-story-tv-${turn}`, outletName: 'Canal 11 Red Federal', title: uniqueTitle(`EN VIVO: ${topic}`, 'Canal 11'), subhead: `El noticiero sigue las consecuencias en la calle: ${recentStory.emotionalText ?? recentStory.description}`, category: storyCategory, bias: 'opositor' },
-      { id: `hl-story-redes-${turn}`, outletName: 'Redes del Sur', title: uniqueTitle(`REDES DISCUTEN: ${topic}`, 'Redes del Sur'), subhead: 'La conversación gira alrededor del mismo hecho; entre ironías y reclamos, nadie lo interpreta igual.', category: storyCategory, bias: 'sensacionalista' },
-    );
+    if (!usedTitles.has(normalizeHeadlineTitle(topic))) {
+      headlines.push(
+        { id: `hl-story-diary-${turn}`, outletName: 'El Diario del Sur', title: uniqueTitle(topic), subhead: recentStory.description, category: storyCategory, bias: 'oficialista' },
+        { id: `hl-story-tv-${turn}`, outletName: 'Canal 11 Red Federal', title: uniqueTitle(`EN VIVO: ${topic}`), subhead: `El noticiero sigue las consecuencias en la calle: ${recentStory.emotionalText ?? recentStory.description}`, category: storyCategory, bias: 'opositor' },
+        { id: `hl-story-redes-${turn}`, outletName: 'Redes del Sur', title: uniqueTitle(`REDES DISCUTEN: ${topic}`), subhead: 'La conversación gira alrededor del mismo hecho; entre ironías y reclamos, nadie lo interpreta igual.', category: storyCategory, bias: 'sensacionalista' },
+      );
+    }
   }
 
   // 0. TITULAR DE DECISIÓN RECIENTE (si el jugador tomó una medida)
   const recentDecisions = (eventLog ?? []).filter((l) => l.type === 'decision').slice(-2);
   if (recentDecisions.length > 0) {
     const lastDec = recentDecisions[recentDecisions.length - 1]!;
-    headlines.push({
-      id: `hl-decision-${turn}`,
-      outletName: 'El Diario del Sur',
-      title: `IMPACTO DE LA MEDIDA: ${lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '')}`,
-      subhead: lastDec.emotionalText ?? lastDec.description,
-      category: 'politico',
-      bias: 'oficialista',
-    });
+    const decisionTitle = lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '');
+    if (!usedTitles.has(normalizeHeadlineTitle(decisionTitle))) {
+      headlines.push({
+        id: `hl-decision-${turn}`,
+        outletName: 'El Diario del Sur',
+        title: `IMPACTO DE LA MEDIDA: ${decisionTitle}`,
+        subhead: lastDec.emotionalText ?? lastDec.description,
+        category: 'politico',
+        bias: 'oficialista',
+      });
+    }
   }
 
   // 1. TITULAR MACRO — siempre hay uno
@@ -256,10 +289,13 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
     bias: 'satirico',
   });
 
-  return headlines.map((headline, index) => enrichHeadline({
-    ...headline,
-    title: usedTitles.has(headline.title) && !headline.title.includes('nueva lectura')
-      ? `${headline.title} — edición ${1000 + turn}.${index + 1}`
-      : headline.title,
-  }, state));
+  const generatedTitles = new Set<string>();
+  return headlines
+    .map((headline) => enrichHeadline({ ...headline, title: uniqueTitle(headline.title) }, state))
+    .filter((headline) => {
+      const key = normalizeHeadlineTitle(headline.title);
+      if (usedTitles.has(key) || generatedTitles.has(key)) return false;
+      generatedTitles.add(key);
+      return true;
+    });
 }
