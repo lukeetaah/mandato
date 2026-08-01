@@ -28,18 +28,18 @@ export const HemerotecaModal: React.FC<HemerotecaModalProps> = ({
         </p>
 
         {/* Lista horizontal de ediciones */}
-        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-800">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-slate-800">
           {hemeroteca.map((issue, idx) => (
             <button
               key={idx}
               onClick={() => setSelectedIssueIdx(idx)}
-              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedIssueIdx === idx
                   ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              Edición N° {issue.editionNumber} — {issue.season} {issue.year}
+              N° {issue.editionNumber} — {issue.fortnight === 1 ? '1ª Quincena' : '2ª Quincena'} {issue.season} {issue.year}
             </button>
           ))}
         </div>

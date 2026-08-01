@@ -8,10 +8,24 @@ const MONTH_NAMES = [
 ];
 
 export function generateDailyHeadlines(state: GameState, rng: RngState): HeadlineItem[] {
-  const { nation, character, turn } = state;
+  const { nation, character, turn, eventLog } = state;
   const calendar = state.calendar ?? { month: 1, year: 2032 };
   const monthName = MONTH_NAMES[(calendar.month ?? 1) - 1] ?? 'Enero';
   const headlines: HeadlineItem[] = [];
+
+  // 0. TITULAR DE DECISIÓN RECIENTE (si el jugador tomó una medida)
+  const recentDecisions = (eventLog ?? []).filter((l) => l.type === 'decision').slice(-2);
+  if (recentDecisions.length > 0) {
+    const lastDec = recentDecisions[recentDecisions.length - 1]!;
+    headlines.push({
+      id: `hl-decision-${turn}`,
+      outletName: 'El Diario del Sur',
+      title: `IMPACTO DE LA MEDIDA: ${lastDec.title.replace(/^[🚨📋📨⚠️]\s*/, '')}`,
+      subhead: lastDec.emotionalText ?? lastDec.description,
+      category: 'politico',
+      bias: 'oficialista',
+    });
+  }
 
   // 1. TITULAR MACRO — siempre hay uno
   if (nation.economy.inflation > 70) {

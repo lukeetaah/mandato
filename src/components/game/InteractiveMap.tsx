@@ -254,8 +254,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
             {/* Capa de Infraestructura (Rutas y Ferrocarriles) */}
             {activeLayer === 'infraestructura' && (
               <g pointerEvents="none">
-                <path d="M 165 170 L 115 150 L 70 50" stroke="#F59E0B" strokeWidth="1.5" strokeDasharray="3 2" />
-                <path d="M 165 170 L 95 250 L 85 420" stroke="#F59E0B" strokeWidth="1.5" strokeDasharray="3 2" />
+                <path d="M 165 170 L 115 150 L 70 50" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="3 2" />
+                <path d="M 165 170 L 95 250 L 85 420" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="3 2" />
                 <text x="120" y="270" fill="#F59E0B" fontSize="6" fontWeight="bold">Ruta Nac. 3</text>
               </g>
             )}

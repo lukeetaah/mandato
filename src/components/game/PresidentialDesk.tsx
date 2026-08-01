@@ -11,7 +11,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const makeChoice = useGameStore((s) => s.makeChoice);
   const nextTurn = useGameStore((s) => s.nextTurn);
 
-  const { calendar, deskObjects, deskProps, pendingDecisions, character, nation } = gameState;
+  const { calendar, deskObjects, pendingDecisions, character, nation } = gameState;
   const [activeObject, setActiveObject] = useState<DeskObject | null>(null);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [dismissedObjects, setDismissedObjects] = useState<Set<string>>(new Set());
@@ -114,19 +114,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
       <div className="relative flex-1 bg-gradient-to-b from-[#2d1b16] via-[#241410] to-[#1a0f0a] p-8 flex flex-col justify-between overflow-hidden shadow-2xl">
         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d7ccc8_1px,transparent_1px)] [background-size:24px_24px]" />
 
-        <div className="flex justify-between items-center z-10 text-xs text-amber-300/70 font-sans mb-4">
-          <div className="flex items-center gap-4">
-            {deskProps?.familyPhotoVisible && (
-              <div className="bg-[#120a07] border-2 border-amber-800/60 p-2 rounded-lg shadow-md flex items-center gap-2 text-[11px] text-amber-200/80 italic font-serif">
-                <span>🖼️</span>
-                <span>"Mariana & Familia — 2030"</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1 bg-[#180d09] px-3 py-1.5 rounded-full border border-amber-900/40 text-[11px] text-amber-300/80">
-              <span>☕</span>
-              <span>Café del despacho ({deskProps?.coffeeCupCount ?? 0})</span>
-            </div>
-          </div>
+        <div className="flex justify-end items-center z-10 text-xs text-amber-300/70 font-sans mb-4">
 
           <div className="flex items-center gap-3">
             <div className="text-right">
