@@ -93,51 +93,66 @@ export function buildDeskObjects(decisions: Decision[], turn: number, headlines:
   const objects: DeskObject[] = [];
 
   // 1. Diario impreso siempre presente en el escritorio
+  const mainHeadline = headlines[0]?.title ?? 'Sin novedades principales en la tapa.';
+  const outletName = headlines[0]?.outletName ?? 'El Diario del Sur';
   objects.push({
     id: `desk-diario-${turn}`,
     type: 'diario',
-    title: 'Edición Impresa del Día',
-    subtitle: headlines[0]?.outletName ?? 'El Diario del Sur',
+    title: outletName,
+    subtitle: mainHeadline,
     urgency: 'media',
-    inspectText: headlines[0]?.title ?? 'Sin novedades principales en la tapa.',
+    inspectText: mainHeadline,
     read: false,
     positionOffset: { x: -140, y: 40 },
   });
 
   // 2. Expedientes y carpetas según decisiones pendientes
+  const callerNames: Record<string, string> = {
+    economico: 'Elena Santillán (Min. de Economía)',
+    politico: 'Ignacio Carrizo (Jefe de Gabinete)',
+    social: 'Rubén Toledo (Líder Sindical)',
+    mediatico: 'Mariana Mansilla (Bloque Opositor)',
+    internacional: 'Marcelo Lagos (Banco Central)',
+    infraestructura: 'Lucía Benítez (Gobernadora del Norte)',
+  };
+
   decisions.forEach((d, idx) => {
+    const isUrgent = d.urgency === 'alta' || d.urgency === 'critica';
     let type: DeskObjectType = 'expediente';
-    if (d.urgency === 'critica') type = 'carpeta-roja';
-    else if (d.category === 'politico') type = 'carta-gobernador';
-    else if (d.category === 'mediatico') type = 'encuesta';
-    else if (d.category === 'internacional') type = 'informe-inteligencia';
+
+    // Las urgencias llegan como llamadas telefónicas, no como carpetas
+    if (isUrgent) {
+      type = 'telefono';
+    } else if (d.urgency === 'critica') {
+      type = 'carpeta-roja';
+    } else if (d.category === 'politico') {
+      type = 'carta-gobernador';
+    } else if (d.category === 'mediatico') {
+      type = 'encuesta';
+    } else if (d.category === 'internacional') {
+      type = 'informe-inteligencia';
+    }
+
+    const caller = callerNames[d.category] ?? 'Jefe de Gabinete';
+    const subtitle = isUrgent
+      ? `Llamada de ${caller}`
+      : `Presentado por: ${d.source}`;
+    const inspectText = isUrgent
+      ? `${caller} te llama por línea directa: "${d.description}"`
+      : d.description;
 
     objects.push({
       id: `desk-obj-${d.id}-${turn}`,
       type,
-      title: d.title,
-      subtitle: `Presentado por: ${d.source}`,
+      title: isUrgent ? `Llamada urgente: ${d.title}` : d.title,
+      subtitle,
       urgency: d.urgency,
-      inspectText: d.description,
+      inspectText,
       associatedDecisionId: d.id,
       read: false,
       positionOffset: { x: 20 + idx * 40, y: -20 + idx * 30 },
     });
   });
-
-  // 3. Teléfono de oficina cuando hay alta urgencia
-  if (decisions.some((d) => d.urgency === 'alta' || d.urgency === 'critica')) {
-    objects.push({
-      id: `desk-phone-${turn}`,
-      type: 'telefono',
-      title: 'Llamada Entrante del Gabinete',
-      subtitle: 'Línea directa del despacho',
-      urgency: 'alta',
-      inspectText: 'El teléfono rojo del despacho no para de sonar.',
-      read: false,
-      positionOffset: { x: 180, y: -100 },
-    });
-  }
 
   return objects;
 }

@@ -15,10 +15,12 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const [activeObject, setActiveObject] = useState<DeskObject | null>(null);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [dismissedObjects, setDismissedObjects] = useState<Set<string>>(new Set());
+  const [showSkipWarning, setShowSkipWarning] = useState(false);
 
   const safeDeskObjects = deskObjects ?? [];
   const visibleObjects = safeDeskObjects.filter(obj => !dismissedObjects.has(obj.id));
-  const hasUnreadItems = visibleObjects.length > 0;
+  const hasDecisionItems = visibleObjects.some(obj => obj.associatedDecisionId);
+  const hasAnyItems = visibleObjects.length > 0;
 
   const timeGradients: Record<string, string> = {
     mañana: 'from-amber-900/40 via-sky-950/80 to-slate-950',
@@ -37,9 +39,9 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
   const activeDecision: Decision | undefined = activeObject?.associatedDecisionId
     ? pendingDecisions.find((d) => d.id === activeObject.associatedDecisionId)
-    : pendingDecisions[0];
+    : undefined;
 
-  const handleDismissObject = (objId: string) => {
+  const handleDismissReadOnly = (objId: string) => {
     setDismissedObjects(prev => {
       const next = new Set(prev);
       next.add(objId);
@@ -53,10 +55,29 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
     if (!activeDecision || !activeObject) return;
     if (selectedChoiceId === choiceId) {
       makeChoice(activeDecision, choiceId);
-      handleDismissObject(activeObject.id);
+      // No necesitamos dismiss manual: executeChoice regenera deskObjects sin esta decisión
+      setActiveObject(null);
+      setSelectedChoiceId(null);
+      setDismissedObjects(new Set()); // Reset porque los IDs cambiaron
     } else {
       setSelectedChoiceId(choiceId);
     }
+  };
+
+  const handleAdvance = () => {
+    if (hasDecisionItems) {
+      // Hay decisiones sin tomar — advertir
+      setShowSkipWarning(true);
+      return;
+    }
+    nextTurn();
+    setDismissedObjects(new Set());
+  };
+
+  const handleForceAdvance = () => {
+    setShowSkipWarning(false);
+    nextTurn();
+    setDismissedObjects(new Set());
   };
 
   const timeOfDay = calendar.timeOfDay ?? 'mañana';
@@ -65,13 +86,10 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
   return (
     <div className="relative w-full min-h-[640px] rounded-3xl overflow-hidden border-4 border-[#3e2723] shadow-2xl bg-[#1a0f0a] flex flex-col justify-between font-serif selection:bg-amber-500/30">
-      {/* ─── 1. VENTANAL DEL DESPACHO (Fondo de ambiente) ─── */}
+      {/* ─── 1. VENTANAL DEL DESPACHO ─── */}
       <div className={`relative h-44 w-full bg-gradient-to-b ${timeGradients[timeOfDay] ?? timeGradients.mañana} p-6 flex justify-between items-start border-b-8 border-[#2d1b16] shadow-inner overflow-hidden`}>
         {weatherCondition === 'lluvia' && (
           <div className="absolute inset-0 opacity-30 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-        )}
-        {weatherCondition === 'tormenta' && (
-          <div className="absolute inset-0 opacity-20 pointer-events-none bg-sky-200" />
         )}
 
         <div className="z-10 flex flex-col">
@@ -92,7 +110,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </div>
       </div>
 
-      {/* ─── 2. LA MESA DEL ESCRITORIO PRESIDENCIAL (Madera Caoba) ─── */}
+      {/* ─── 2. LA MESA DEL ESCRITORIO ─── */}
       <div className="relative flex-1 bg-gradient-to-b from-[#2d1b16] via-[#241410] to-[#1a0f0a] p-8 flex flex-col justify-between overflow-hidden shadow-2xl">
         <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d7ccc8_1px,transparent_1px)] [background-size:24px_24px]" />
 
@@ -112,7 +130,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="block text-[10px] text-amber-400/60 uppercase tracking-wider font-bold">Estado de Reservas</span>
+              <span className="block text-[10px] text-amber-400/60 uppercase tracking-wider font-bold">Reservas</span>
               <span className={`font-bold text-sm ${nation.economy.reserves < 25 ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {Math.round(nation.economy.reserves)}%
               </span>
@@ -129,11 +147,12 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-auto z-10">
             {visibleObjects.map((obj) => {
               const isUrgent = obj.urgency === 'critica' || obj.urgency === 'alta';
+              const hasDecision = !!obj.associatedDecisionId;
 
               return (
                 <div
                   key={obj.id}
-                  onClick={() => setActiveObject(obj)}
+                  onClick={() => { setActiveObject(obj); setSelectedChoiceId(null); }}
                   className={`p-5 rounded-2xl cursor-pointer transition-all transform hover:-translate-y-1.5 hover:shadow-2xl border ${
                     isUrgent
                       ? 'bg-rose-950/80 border-rose-500/60 shadow-lg shadow-rose-900/30'
@@ -153,9 +172,9 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                       {obj.type === 'informe-inteligencia' && '🕵️'}
                     </span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                      isUrgent ? 'bg-rose-600 text-white' : 'bg-amber-900/40 text-amber-300 border border-amber-700/40'
+                      isUrgent ? 'bg-rose-600 text-white' : hasDecision ? 'bg-amber-600 text-white' : 'bg-amber-900/40 text-amber-300 border border-amber-700/40'
                     }`}>
-                      {obj.urgency.toUpperCase()}
+                      {hasDecision ? (isUrgent ? 'URGENTE' : 'REQUIERE DECISIÓN') : 'INFORMATIVO'}
                     </span>
                   </div>
 
@@ -166,8 +185,10 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                     {obj.subtitle}
                   </p>
 
-                  <div className="mt-3 pt-2 border-t border-amber-900/30 flex justify-between items-center text-[10px] text-amber-400/70 font-sans font-bold">
-                    <span>Inspeccionar asunto ➔</span>
+                  <div className="mt-3 pt-2 border-t border-amber-900/30 flex justify-between items-center text-[10px] font-sans font-bold">
+                    <span className={hasDecision ? 'text-amber-300' : 'text-amber-400/70'}>
+                      {hasDecision ? '⚖️ Abrir y resolver' : 'Inspeccionar ➔'}
+                    </span>
                   </div>
                 </div>
               );
@@ -181,26 +202,39 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           </div>
         )}
 
-        {/* ─── 3. INSPECTOR DE DOCUMENTOS EN EL ESCRITORIO (Overlay Táctil) ─── */}
+        {/* ─── 3. INSPECTOR DE DOCUMENTOS ─── */}
         {activeObject && (
           <div className="absolute inset-x-6 top-6 bottom-6 z-30 bg-[#f7f1df] text-slate-950 p-8 rounded-3xl border-8 border-[#4e342e] shadow-2xl overflow-y-auto font-serif">
             <div className="flex justify-between items-center border-b-2 border-slate-950 pb-4 mb-6 font-sans">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">
-                  {activeObject.type === 'diario' ? '🗞️' : activeObject.type === 'carpeta-roja' ? '🔴' : activeObject.type === 'carta-gobernador' ? '✉️' : activeObject.type === 'telefono' ? '☎️' : activeObject.type === 'encuesta' ? '📊' : '📁'}
+                  {activeObject.type === 'diario' ? '🗞️' : activeObject.type === 'telefono' ? '☎️' : activeObject.type === 'carta-gobernador' ? '✉️' : activeObject.type === 'encuesta' ? '📊' : '📁'}
                 </span>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-slate-600">
-                    DOCUMENTO OFICIAL DEL DESPACHO
+                    {activeDecision ? 'DOCUMENTO QUE REQUIERE SU DECISIÓN' : 'DOCUMENTO INFORMATIVO'}
                   </span>
-                  <h2 className="text-2xl font-black text-slate-950 leading-tight font-serif">
+                  <h2 className="text-xl font-black text-slate-950 leading-tight font-serif">
                     {activeObject.title}
                   </h2>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleDismissObject(activeObject.id)}>
-                ✕ Cerrar y archivar
-              </Button>
+              {/* Botón de cerrar: solo archiva si NO tiene decisión pendiente */}
+              {activeDecision ? (
+                <button
+                  onClick={() => { setActiveObject(null); setSelectedChoiceId(null); }}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border-2 border-slate-400 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
+                >
+                  ← Volver a la mesa
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleDismissReadOnly(activeObject.id)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 text-white border-2 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer shadow-md"
+                >
+                  ✕ Cerrar y archivar
+                </button>
+              )}
             </div>
 
             <div className="space-y-6 text-sm text-slate-900 leading-relaxed font-serif">
@@ -208,10 +242,10 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                 "{activeObject.inspectText}"
               </p>
 
-              {activeDecision && (
+              {activeDecision ? (
                 <div className="space-y-4 font-sans pt-4 border-t border-slate-300">
                   <h4 className="font-extrabold text-slate-950 text-sm font-serif">
-                    Opciones de Estado disponibles:
+                    ¿Qué decidís hacer?
                   </h4>
 
                   {activeDecision.choices.map((choice) => {
@@ -223,57 +257,90 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                         className={`p-5 rounded-2xl transition-all border ${
                           isSelected
                             ? 'bg-slate-950 text-amber-200 border-slate-950 shadow-xl'
-                            : 'bg-[#ebdcb9] text-slate-900 border-slate-400 hover:border-slate-800'
+                            : 'bg-[#ebdcb9] text-slate-900 border-slate-400 hover:border-slate-800 cursor-pointer'
                         }`}
+                        onClick={() => !isSelected && setSelectedChoiceId(choice.id)}
                       >
                         <h5 className="font-bold text-sm mb-1">{choice.label}</h5>
-                        <p className="text-xs text-slate-700 mb-3 leading-relaxed font-serif">
+                        <p className={`text-xs mb-3 leading-relaxed font-serif ${isSelected ? 'text-amber-300/80' : 'text-slate-700'}`}>
                           {choice.description}
                         </p>
 
-                        <div className="flex gap-4 text-[11px] font-semibold mb-3">
+                        <div className="flex flex-wrap gap-4 text-[11px] font-semibold mb-3">
                           {choice.preview.gains.length > 0 && (
-                            <span className="text-emerald-700">
-                              👍 Beneficios: {choice.preview.gains.map((g) => g.label).join(', ')}
+                            <span className={isSelected ? 'text-emerald-300' : 'text-emerald-700'}>
+                              👍 {choice.preview.gains.map((g) => g.label).join(', ')}
                             </span>
                           )}
                           {choice.preview.losses.length > 0 && (
-                            <span className="text-rose-700">
-                              ⚠️ Riesgos: {choice.preview.losses.map((l) => l.label).join(', ')}
+                            <span className={isSelected ? 'text-rose-300' : 'text-rose-700'}>
+                              ⚠️ {choice.preview.losses.map((l) => l.label).join(', ')}
                             </span>
                           )}
                         </div>
 
-                        <Button
-                          variant={isSelected ? 'gold' : 'primary'}
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleChoiceClick(choice.id)}
-                        >
-                          {isSelected ? '⚠️ Firmar decreto y ejecutar' : 'Seleccionar esta medida'}
-                        </Button>
+                        {isSelected && (
+                          <Button
+                            variant="gold"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => { e.stopPropagation(); handleChoiceClick(choice.id); }}
+                          >
+                            ⚠️ Firmar decreto y ejecutar
+                          </Button>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic font-sans">Este documento es informativo. Podés cerrarlo y archivarlo.</p>
               )}
             </div>
           </div>
         )}
 
+        {/* ─── ADVERTENCIA DE NEGLIGENCIA ─── */}
+        {showSkipWarning && (
+          <div className="absolute inset-x-6 bottom-20 z-40 bg-rose-950/95 border-2 border-rose-500/60 p-6 rounded-2xl shadow-2xl font-sans text-center backdrop-blur-md">
+            <p className="text-rose-200 text-sm font-bold mb-2">⚠️ Hay decisiones sin tomar en tu escritorio</p>
+            <p className="text-rose-300/80 text-xs mb-4 leading-relaxed">
+              No tomar ninguna decisión puede ser peor que tomar una mala.<br/>
+              La inacción de un mandatario tiene consecuencias reales sobre el país.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowSkipWarning(false)}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-white text-slate-950 hover:bg-slate-200 transition-all cursor-pointer"
+              >
+                Volver y decidir
+              </button>
+              <button
+                onClick={handleForceAdvance}
+                className="px-5 py-2 text-xs font-bold rounded-xl border border-rose-500/60 text-rose-300 hover:bg-rose-900 transition-all cursor-pointer"
+              >
+                Avanzar sin decidir (asumí las consecuencias)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── BARRA INFERIOR ─── */}
         <div className="flex justify-between items-center z-10 pt-4 border-t border-amber-900/40 font-sans">
           <span className="text-xs text-amber-300/60 font-medium">
             República del Sur — Período Constitucional 2032-2036
           </span>
 
           <Button
-            variant={hasUnreadItems ? 'ghost' : 'gold'}
+            variant={hasAnyItems ? 'ghost' : 'gold'}
             size="md"
-            onClick={hasUnreadItems ? undefined : nextTurn}
-            className={hasUnreadItems ? 'opacity-50 cursor-not-allowed text-amber-400' : 'shadow-xl shadow-amber-500/20'}
+            onClick={hasAnyItems ? handleAdvance : () => { nextTurn(); setDismissedObjects(new Set()); }}
+            className={hasDecisionItems ? 'text-amber-400' : hasAnyItems ? 'opacity-70 text-amber-400' : 'shadow-xl shadow-amber-500/20'}
           >
-            {hasUnreadItems
-              ? '📋 Asuntos pendientes en la mesa 🔒'
+            {hasDecisionItems
+              ? '⚖️ Asuntos que requieren decisión'
+              : hasAnyItems
+              ? '📋 Revisar asuntos pendientes'
               : 'Avanzar quincena ➔'}
           </Button>
         </div>
