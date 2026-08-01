@@ -1,0 +1,5 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { motion, AnimatePresence } from 'framer-motion';
+export const Modal = ({ isOpen, onClose, title, children }) => {
+    return (_jsx(AnimatePresence, { children: isOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4", children: [_jsx(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: onClose, className: "absolute inset-0 bg-slate-950/80 backdrop-blur-sm" }), _jsxs(motion.div, { initial: { scale: 0.95, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.95, opacity: 0 }, className: "relative glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl z-10 border border-slate-700/50", children: [_jsxs("div", { className: "flex justify-between items-center mb-4 border-b border-slate-800 pb-3", children: [_jsx("h2", { className: "text-xl font-bold text-slate-100", children: title }), _jsx("button", { onClick: onClose, className: "text-slate-400 hover:text-white text-lg font-bold p-1 cursor-pointer", children: "\u2715" })] }), _jsx("div", { children: children })] })] })) }));
+};

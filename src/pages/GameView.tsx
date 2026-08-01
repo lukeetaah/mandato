@@ -1,0 +1,135 @@
+import { useState } from 'react';
+import { useUIStore } from '@stores/ui-store';
+import { useGameStore } from '@stores/game-store';
+import { MainLayout } from '@components/layout/MainLayout';
+import { Dashboard } from '@components/game/Dashboard';
+import { DecisionCard } from '@components/game/DecisionCard';
+import { InteractiveMap } from '@components/game/InteractiveMap';
+import { OnboardingModal } from '@components/game/OnboardingModal';
+import { DecisionFlowMap } from '@components/game/DecisionFlowMap';
+import { PressNewsRoom } from '@components/game/PressNewsRoom';
+import { Card } from '@components/ui/Card';
+import { Badge } from '@components/ui/Badge';
+import { REPUTATION_LABELS, HOUSING_LABELS, HOUSING_SATIRE } from '@engine/constants';
+
+import { PresidentialDesk } from '@components/game/PresidentialDesk';
+
+export const GameView: React.FC = () => {
+  const activeTab = useUIStore((s) => s.activeTab);
+  const gameState = useGameStore((s) => s.gameState);
+
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(gameState?.turn === 1);
+
+  if (!gameState) return null;
+
+  const { pendingDecisions, provinces, reputation, eventLog, patterns, character } = gameState;
+
+  return (
+    <MainLayout>
+      <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6 max-w-6xl mx-auto">
+          <PresidentialDesk gameState={gameState} />
+          <Dashboard />
+        </div>
+      )}
+
+      {activeTab === 'decisiones' && (
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-100 mb-6">Decisiones pendientes</h2>
+          {pendingDecisions.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-slate-400">No hay decisiones urgentes pendientes en este turno.</p>
+              <p className="text-xs text-slate-500 mt-2">Avanzá la quincena para continuar la simulación.</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <DecisionCard key={pendingDecisions[0]!.id} decision={pendingDecisions[0]!} />
+              {pendingDecisions.length > 1 && (
+                <p className="text-sm text-slate-400 text-center">
+                  Resolvé esta situación para ver la siguiente.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'camino' && (
+        <DecisionFlowMap eventLog={eventLog} detectedProfile={patterns.detectedProfile} />
+      )}
+
+      {activeTab === 'provincias' && (
+        <InteractiveMap provinces={provinces} />
+      )}
+
+      {activeTab === 'personaje' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <Card title="Perfil y vida privada" subtitle="Tu vivienda y bienes personales">
+            <div className="space-y-4 text-xs">
+              <div>
+                <span className="text-slate-400 font-semibold block mb-1">Vivienda actual:</span>
+                <Badge variant="gold">{HOUSING_LABELS[character.housing] ?? character.housing}</Badge>
+                <p className="text-slate-300 italic text-[11px] mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800 leading-relaxed font-serif">
+                  "{HOUSING_SATIRE[character.housing] ?? 'Vivienda institucional de la República.'}"
+                </p>
+              </div>
+
+              <div>
+                <span className="text-slate-400 font-semibold block mb-1">Perfil detectado por la prensa:</span>
+                <Badge variant="sky">{patterns.detectedProfile.toUpperCase()}</Badge>
+              </div>
+
+              <div>
+                <span className="text-slate-400 font-semibold block mb-1">Patrimonio estimado:</span>
+                <span className="font-bold text-emerald-400 text-sm">{character.wealth} pts</span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-slate-400 font-semibold block mb-1">Biografía política:</span>
+                <p className="text-slate-300 italic text-[11px]">{character.backstory}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Reputación por grupo" subtitle="Opinión pública segmentada">
+            <div className="space-y-2 text-xs">
+              {Object.entries(reputation).map(([groupKey, value]) => (
+                <div key={groupKey} className="flex justify-between items-center border-b border-slate-800/60 pb-1">
+                  <span className="text-slate-300">{REPUTATION_LABELS[groupKey as keyof typeof REPUTATION_LABELS] ?? groupKey}:</span>
+                  <span className={`font-bold ${value >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{value}%</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'prensa' && (
+        <PressNewsRoom gameState={gameState} />
+      )}
+
+      {activeTab === 'historial' && (
+        <div className="max-w-3xl mx-auto space-y-3">
+          <h2 className="text-2xl font-bold text-slate-100 mb-4">Historial del mandato</h2>
+          {eventLog.slice().reverse().map((log, idx) => (
+            <Card key={idx} className="py-3 px-4">
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-bold text-sky-400 text-xs">Turno {log.turn}</span>
+                <Badge variant="slate">{log.type.toUpperCase()}</Badge>
+              </div>
+              <h4 className="font-bold text-slate-200 text-sm">{log.title}</h4>
+              <p className="text-xs text-slate-300">{log.description}</p>
+              {log.emotionalText && (
+                <p className="text-[11px] text-amber-300 italic pt-1 font-serif">
+                  💬 "{log.emotionalText}"
+                </p>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+    </MainLayout>
+  );
+};
