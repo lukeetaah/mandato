@@ -14,6 +14,7 @@ import { REPUTATION_LABELS, HOUSING_LABELS, HOUSING_SATIRE } from '@engine/const
 
 import { PresidentialDesk } from '@components/game/PresidentialDesk';
 import { JudicialTrial } from '@components/game/JudicialTrial';
+import { CalendarWidget } from '@components/game/CalendarWidget';
 
 export const GameView: React.FC = () => {
   const activeTab = useUIStore((s) => s.activeTab);
@@ -123,23 +124,34 @@ export const GameView: React.FC = () => {
       )}
 
       {activeTab === 'historial' && (
-        <div className="max-w-3xl mx-auto space-y-3">
-          <h2 className="text-2xl font-bold text-slate-100 mb-4">Historial del mandato</h2>
-          {eventLog.slice().reverse().map((log, idx) => (
-            <Card key={idx} className="py-3 px-4">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-sky-400 text-xs">Turno {log.turn}</span>
-                <Badge variant="slate">{log.type.toUpperCase()}</Badge>
-              </div>
-              <h4 className="font-bold text-slate-200 text-sm">{log.title}</h4>
-              <p className="text-xs text-slate-300">{log.description}</p>
-              {log.emotionalText && (
-                <p className="text-[11px] text-amber-300 italic pt-1 font-serif">
-                  💬 "{log.emotionalText}"
-                </p>
-              )}
-            </Card>
-          ))}
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-slate-100">Línea temporal e historial del mandato</h2>
+              <p className="text-xs text-slate-400">Consultá las decisiones, decretos y coyunturas registradas mes a mes en tu gestión.</p>
+            </div>
+          </div>
+
+          <CalendarWidget calendar={gameState.calendar} />
+
+          <div className="space-y-3 pt-4 border-t border-slate-800">
+            <h3 className="text-lg font-bold text-slate-200">Registro cronológico de eventos</h3>
+            {eventLog.slice().reverse().map((log, idx) => (
+              <Card key={idx} className="py-3 px-4">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-bold text-sky-400 text-xs">Turno {log.turn}</span>
+                  <Badge variant="slate">{log.type.toUpperCase()}</Badge>
+                </div>
+                <h4 className="font-bold text-slate-200 text-sm">{log.title}</h4>
+                <p className="text-xs text-slate-300">{log.description}</p>
+                {log.emotionalText && (
+                  <p className="text-[11px] text-amber-300 italic pt-1 font-serif">
+                    💬 "{log.emotionalText}"
+                  </p>
+                )}
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </MainLayout>

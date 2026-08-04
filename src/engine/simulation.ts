@@ -23,7 +23,13 @@ import { applyReputationChanges } from './reputation';
 import { simulateProvincesTick } from './provinces';
 import { getEligibleDecisions } from './decisions';
 import { generateDailyHeadlines } from './headlines';
-import { checkForScarTrigger, dedupeNationalScars } from './scars';
+import {
+  checkForScarTrigger,
+  dedupeNationalScars,
+  createDefaultWorldState,
+  simulateAutonomousWorld,
+  evaluatePersistentConsequences,
+} from './scars';
 import { generateContextualDecision, generateSystemicEvent } from './event-generator';
 
 const SEASONS: Array<'Verano' | 'Otoño' | 'Invierno' | 'Primavera'> = ['Verano', 'Otoño', 'Invierno', 'Primavera'];
@@ -442,6 +448,8 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
     dailyHeadlines,
     hemeroteca: [initialIssue],
     scars: [],
+    persistentConsequences: [],
+    worldState: createDefaultWorldState(),
     sectorTrustMemory: {
       campo: 50,
       empresarios: 50,
@@ -725,6 +733,21 @@ export function advanceTurn(state: GameState): GameState {
 
   const nextPendingDecisions = trialDecision ? [trialDecision] : [...existingPending, ...newPicks];
 
+  // 9. Mundo Autónomo y Consecuencias Persistentes
+  const { updatedWorld, worldLog } = simulateAutonomousWorld(state.worldState ?? createDefaultWorldState(), nextTurn);
+  const stateForConsequences: GameState = {
+    ...nextStateForHeadlines,
+    persistentConsequences: state.persistentConsequences ?? [],
+    worldState: updatedWorld,
+  };
+  const { updatedConsequences, emergentLogs, butterflyLog } = evaluatePersistentConsequences(stateForConsequences);
+  const allNewLogs: LogEntry[] = [
+    ...newLogs,
+    ...(worldLog ? [worldLog] : []),
+    ...emergentLogs,
+    ...(butterflyLog ? [butterflyLog] : []),
+  ];
+
   return {
     ...state,
     phase: nextPhase,
@@ -734,6 +757,8 @@ export function advanceTurn(state: GameState): GameState {
     hemeroteca: updatedHemeroteca,
     annualDocumentaries: annualReport ? [...state.annualDocumentaries, annualReport] : state.annualDocumentaries,
     scars: nextScars,
+    persistentConsequences: updatedConsequences,
+    worldState: updatedWorld,
     electionsHistory: nextElections,
     nation: currentNation,
     provinces: nextProvinces,
@@ -752,7 +777,7 @@ export function advanceTurn(state: GameState): GameState {
     },
     activeDelayedEffects: remainingDelayed,
     activeEvents,
-    eventLog: [...state.eventLog, ...newLogs].slice(-200),
+    eventLog: [...state.eventLog, ...allNewLogs].slice(-200),
     patterns: updatedPatterns,
     updatedAt: Date.now(),
   };

@@ -228,6 +228,36 @@ export interface ProvinceScar {
   effects: Partial<ProvinceEconomy>;
 }
 
+export type ConsequenceCategory =
+  | 'temporal'
+  | 'latente'
+  | 'persistente'
+  | 'recurrente'
+  | 'permanente'
+  | 'heredada';
+
+export interface PersistentConsequence {
+  id: string;
+  title: string;
+  summary: string; // Frase resumida en lenguaje humano
+  category: ConsequenceCategory;
+  originTurn: number;
+  year: number;
+  icon: string;
+  causalityChain: string[]; // Cadena explicativa de causalidad
+  sectorMemory?: string; // Sector que guarda la memoria (sindicatos, mercados, campo, etc.)
+  effects: Effects;
+  resolved: boolean;
+  visibleInUI: boolean;
+}
+
+export interface WorldState {
+  globalCommoditiesIndex: number;
+  globalTechEra: string;
+  internationalMarketMood: 'favorable' | 'neutral' | 'hostil';
+  climateTrend: 'estelar' | 'normal' | 'sequia-severa' | 'inundaciones';
+}
+
 export interface NationalScar {
   id: string;
   title: string;
@@ -642,6 +672,8 @@ export interface GameState {
   dailyHeadlines: HeadlineItem[];
   hemeroteca: HeadlineIssue[]; // Memoria total del país
   scars: NationalScar[]; // Cicatrices de largo plazo
+  persistentConsequences: PersistentConsequence[]; // Sistema de consecuencias persistentes
+  worldState: WorldState; // Evolución autónoma del mundo exterior
   sectorTrustMemory: SectorTrustMemory;
   annualDocumentaries: AnnualDocumentaryReport[];
   electionsHistory: ElectionRecord[];

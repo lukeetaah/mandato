@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '@stores/game-store';
-import type { NationalScar } from '@engine/types';
+import type { NationalScar, PersistentConsequence } from '@engine/types';
 import { dedupeNationalScars } from '@engine/scars';
 import { Card } from '@components/ui/Card';
 import { StatBar } from '@components/ui/StatBar';
@@ -12,8 +12,10 @@ export const Dashboard: React.FC = () => {
 
   if (!gameState) return null;
 
-  const { nation, character, calendar, dailyHeadlines, scars } = gameState;
+  const { nation, character, calendar, dailyHeadlines, scars, persistentConsequences } = gameState;
   const [selectedScarId, setSelectedScarId] = useState<string | null>(null);
+  const [expandedConsequenceId, setExpandedConsequenceId] = useState<string | null>(null);
+  const activeConsequences = (persistentConsequences ?? []).filter((c) => c.visibleInUI && !c.resolved);
   const uniqueScars = dedupeNationalScars(scars);
   const selectedScar: NationalScar | undefined = uniqueScars.find((scar) => scar.id === selectedScarId);
 
@@ -103,6 +105,58 @@ export const Dashboard: React.FC = () => {
               <p className="mt-2 italic text-amber-200/80">{selectedScar.mediaEcho}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Consecuencias Persistentes del País */}
+      {activeConsequences.length > 0 && (
+        <div className="glass-panel p-4 rounded-xl border border-violet-500/30">
+          <h4 className="text-xs font-bold text-violet-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>🔗</span> Consecuencias en curso
+          </h4>
+          <div className="space-y-2">
+            {activeConsequences.map((c: PersistentConsequence) => {
+              const categoryColors: Record<string, string> = {
+                temporal: 'bg-slate-700/60 text-slate-300 border-slate-500/40',
+                latente: 'bg-yellow-950/60 text-yellow-300 border-yellow-500/40',
+                persistente: 'bg-orange-950/60 text-orange-300 border-orange-500/40',
+                recurrente: 'bg-blue-950/60 text-blue-300 border-blue-500/40',
+                permanente: 'bg-rose-950/60 text-rose-300 border-rose-500/40',
+                heredada: 'bg-violet-950/60 text-violet-300 border-violet-500/40',
+              };
+              const colorClass = categoryColors[c.category] ?? categoryColors['persistente']!;
+              const isExpanded = expandedConsequenceId === c.id;
+              return (
+                <div key={c.id} className="rounded-lg border border-violet-500/20 bg-slate-900/60 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <span className="text-base shrink-0">{c.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-200 leading-snug">{c.summary}</p>
+                        <span className={`mt-1 inline-block text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider ${colorClass}`}>
+                          {c.category}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedConsequenceId(isExpanded ? null : c.id)}
+                      className="shrink-0 text-[10px] text-violet-400 hover:text-violet-200 transition-colors cursor-pointer"
+                    >
+                      {isExpanded ? '▲ cerrar' : '▼ por qué'}
+                    </button>
+                  </div>
+                  {isExpanded && c.causalityChain.length > 0 && (
+                    <ol className="mt-2 pl-4 space-y-1 border-t border-violet-500/20 pt-2">
+                      {c.causalityChain.map((step, i) => (
+                        <li key={i} className="text-[11px] text-slate-400 list-decimal">{step}</li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
