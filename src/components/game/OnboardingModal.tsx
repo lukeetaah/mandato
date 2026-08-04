@@ -14,7 +14,7 @@ const LORE_PAGES = [
 
 Una crisis institucional sin precedentes —combinación de default soberano, polarización extrema y colapso del sistema judicial— forzó un proceso de reorganización territorial.
 
-Las 23 provincias fueron consolidadas en 8 macro-regiones bajo el nuevo nombre de la **República del Sur**.
+Las 24 jurisdicciones —23 provincias y la Ciudad Autónoma de Buenos Aires— fueron consolidadas en 8 macro-regiones bajo el nuevo nombre de la **República del Sur**.
 
 El Congreso fue reformado. La Constitución, reescrita. Los partidos tradicionales se fragmentaron en nuevas fuerzas.
 
