@@ -23,6 +23,8 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
   } as const;
 
   const handleChoiceClick = (choiceId: string) => {
+    const choice = decision.choices.find((candidate) => candidate.id === choiceId);
+    if (choice?.disabled) return;
     if (confirming && selectedChoiceId === choiceId) {
       // Confirmar
       makeChoice(decision, choiceId);
@@ -52,7 +54,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
           return (
             <div
               key={choice.id}
-              className={`p-4 rounded-xl transition-all border ${
+              className={`p-4 rounded-xl transition-all border ${choice.disabled ? 'opacity-60 border-slate-700 bg-slate-950/70' : ''} ${
                 isSelected
                   ? 'bg-sky-950/80 border-sky-400/60 shadow-lg shadow-sky-500/10'
                   : 'bg-slate-900/80 border-slate-800 hover:border-sky-500/30'
@@ -62,6 +64,12 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
                 <h4 className="font-bold text-slate-100 text-sm">{choice.label}</h4>
               </div>
               <p className="text-xs text-slate-400 mb-3">{choice.description}</p>
+
+              {choice.disabledReason && (
+                <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-700/40 rounded-lg px-2.5 py-2 mb-3">
+                  ☐ {choice.disabledReason}
+                </p>
+              )}
 
               {/* Previsualización */}
               <div className="grid grid-cols-3 gap-2 text-[11px] mb-3 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
@@ -116,9 +124,10 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
                 variant={isSelected ? 'gold' : 'primary'}
                 size="sm"
                 className="w-full"
+                disabled={choice.disabled}
                 onClick={() => handleChoiceClick(choice.id)}
               >
-                {isSelected ? '⚠️ Confirmar Decisión' : 'Elegir esta opción'}
+                {choice.disabled ? 'No disponible' : isSelected ? '⚠️ Confirmar Decisión' : 'Elegir esta opción'}
               </Button>
             </div>
           );

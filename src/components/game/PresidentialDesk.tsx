@@ -55,6 +55,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
   const handleChoiceClick = (choiceId: string) => {
     if (!activeDecision || !activeObject) return;
+    if (activeDecision.choices.find((choice) => choice.id === choiceId)?.disabled) return;
     if (selectedChoiceId === choiceId) {
       makeChoice(activeDecision, choiceId);
       setActiveObject(null);
@@ -247,17 +248,22 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                     return (
                       <div
                         key={choice.id}
-                        className={`p-4 sm:p-5 rounded-2xl transition-all border ${
+                        className={`p-4 sm:p-5 rounded-2xl transition-all border ${choice.disabled ? 'opacity-60 border-slate-400/60' : ''} ${
                           isSelected
                             ? 'bg-slate-950 text-amber-200 border-slate-950 shadow-xl'
                             : 'bg-[#ebdcb9] text-slate-900 border-slate-400 hover:border-slate-800 cursor-pointer'
                         }`}
-                        onClick={() => !isSelected && setSelectedChoiceId(choice.id)}
+                        onClick={() => !choice.disabled && !isSelected && setSelectedChoiceId(choice.id)}
                       >
                         <h5 className="font-bold text-sm mb-1">{choice.label}</h5>
                         <p className={`text-xs mb-3 leading-relaxed font-serif ${isSelected ? 'text-amber-300/80' : 'text-slate-700'}`}>
                           {choice.description}
                         </p>
+                        {choice.disabledReason && (
+                          <p className="text-[11px] text-amber-900 bg-amber-200/60 border border-amber-700/40 rounded-lg px-2.5 py-2 mb-3">
+                            ☐ {choice.disabledReason}
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap gap-4 text-[11px] font-semibold mb-3">
                           {choice.preview.gains.length > 0 && (
@@ -277,6 +283,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                             variant="gold"
                             size="sm"
                             className="w-full"
+                            disabled={choice.disabled}
                             onClick={(e) => { e.stopPropagation(); handleChoiceClick(choice.id); }}
                           >
                             ⚠️ Firmar decreto y ejecutar

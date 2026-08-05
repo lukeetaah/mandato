@@ -688,14 +688,22 @@ export function getEligibleDecisions(state: GameState): Decision[] {
     }
     return isRelevantToCountry(d.id, state);
   }).map((decision) => {
-    const contextualized = contextualizeRecurringDecision(contextualizeDecision(decision, state), state);
-    const causeKey = getDecisionCauseKey(decision, state);
-    return {
-      ...contextualized,
-      familyId: getDecisionFamilyId(decision),
-      causeKey,
-    };
+    return prepareDecisionForState(decision, state);
   });
+}
+
+/** Aplica la misma memoria a expedientes normales y a decisiones nacidas de un evento. */
+export function prepareDecisionForState(decision: Decision, state: GameState): Decision {
+  const contextualized = contextualizeDecision(contextualizeRecurringDecision(decision, state), state);
+  const memoryAware = contextualizeChoiceSet(contextualized, state);
+  const withExceptionalPath = addExceptionalPath(memoryAware, state);
+  const causeKey = getDecisionCauseKey(decision, state);
+  return {
+    ...withExceptionalPath,
+    familyId: getDecisionFamilyId(decision),
+    causeKey,
+    choices: annotateChoiceAvailability(withExceptionalPath, state),
+  };
 }
 
 /** Evita expedientes absurdos: cada tema aparece cuando el país tiene una razón para discutirlo. */
@@ -708,7 +716,7 @@ function contextualizeDecision(decision: Decision, state: GameState): Decision {
   if (round % 2 === 1) {
     return {
       ...decision,
-      title: 'TRANSPORTE: LA TARIFA SOCIAL SE ROMPE POR EL MEDIO',
+      title: `TRANSPORTE: LA TARIFA SOCIAL SE ROMPE POR EL MEDIO · Fase ${round + 1}`,
       description: 'Ya aplicaste una solución general y el problema volvió con otra cara. La auditoría muestra que los subsidios llegan distinto según la provincia; esta vez la discusión no es cuánto aumentar, sino quién paga y quién queda afuera.',
       choices: [
         { id: `choice-transporte-ruta-${round}`, label: 'Subsidio focalizado por recorrido y horario', description: 'Protegés los trayectos esenciales y dejás que el resto cubra una parte mayor del costo.', preview: compactPreview('Ayuda a quienes realmente viajan', 'Sistema difícil de controlar', 'Municipios que inventan pasajeros'), effects: { national: { economy: { reserves: -2 }, society: { poverty: -2, trust: 3 } }, reputation: { trabajadores: 8, 'clase-media': 5, mercados: -3 }, character: { popularity: 4, pragmatismo: 3 } }, delayedEffects: [] },
@@ -720,7 +728,7 @@ function contextualizeDecision(decision: Decision, state: GameState): Decision {
 
   return {
     ...decision,
-    title: 'TRANSPORTE: EL PARO QUE NO CABE EN UNA PLANILLA',
+    title: `TRANSPORTE: EL PARO QUE NO CABE EN UNA PLANILLA · Fase ${round + 1}`,
     description: 'La primera suba y la segunda reforma no resolvieron el fondo. Ahora los choferes paran por turnos, los usuarios organizan mapas de frecuencias y un streamer transmite desde una terminal con más audiencia que el noticiero.',
     choices: [
       { id: `choice-transporte-renegociar-${round}`, label: 'Renegociar concesiones a cambio de frecuencia mínima', description: 'El Estado sostiene los recorridos indispensables; las empresas aceptan ganar menos y mostrar sus libros.', preview: compactPreview('Servicio garantizado', 'Costo fiscal', 'Aliados que pierden negocios'), effects: { national: { economy: { reserves: -3 }, society: { employment: 2, socialConflicts: -7 } }, reputation: { trabajadores: 7, empresarios: -5 }, character: { popularity: 5 } }, delayedEffects: [] },
@@ -788,6 +796,155 @@ function contextualizeRecurringDecision(decision: Decision, state: GameState): D
     title,
     description: `${decision.description} El expediente ya tiene ${occurrenceCount} antecedente${occurrenceCount === 1 ? '' : 's'} en este mandato; esta instancia se abre por una causa nueva y no parte de cero.`,
   };
+}
+
+function choiceFamilyId(choiceId: string): string {
+  return choiceId.replace(/-(?:ciclo|fase)-\d+$/i, '').replace(/-\d+$/, '');
+}
+
+function hasUsedChoice(state: GameState, choiceId: string): boolean {
+  const familyId = choiceFamilyId(choiceId);
+  return state.decisionHistory.some((entry) => choiceFamilyId(entry.choiceId) === familyId);
+}
+
+function getImplicitPoliticalCapital(state: GameState): number {
+  const reputations = Object.values(state.reputation ?? {});
+  const averageReputation = reputations.length > 0
+    ? reputations.reduce((sum, value) => sum + value, 0) / reputations.length
+    : 50;
+  return Math.max(0, Math.min(100, Math.round(
+    averageReputation * 0.65
+      + state.nation.governance.institutionality * 0.25
+      - state.nation.society.socialConflicts * 0.1,
+  )));
+}
+
+function contextualizeChoiceSet(decision: Decision, state: GameState): Decision {
+  const historyCount = state.decisionHistory.filter((entry) => (entry.familyId ?? entry.id) === getDecisionFamilyId(decision)).length;
+  if (historyCount === 0) return decision;
+
+  if (decision.id === 'dec-paritaria-docente') {
+    const usedTrigger = hasUsedChoice(state, 'choice-clausula-gatillo');
+    const usedRaise = hasUsedChoice(state, 'choice-conceder-paritaria');
+    const latePhaseLabelSets = [
+      ['Mantener el acuerdo vigente y revisar su alcance', 'Usar fondos de emergencia para evitar otro paro', 'Abrir una mesa técnica con calendario público'],
+      ['Suspender beneficios no esenciales hasta cerrar la paritaria', 'Vincular futuros aumentos a metas de aprendizaje', 'Convocar una mediación federal con acta pública'],
+      ['Revisar la cláusula de actualización con universidades', 'Crear un fondo salarial con aportes extraordinarios', 'Delegar la ejecución a las provincias con auditoría nacional'],
+    ];
+    const latePhaseLabels = latePhaseLabelSets[Math.max(0, (historyCount - 2) % latePhaseLabelSets.length)] ?? latePhaseLabelSets[0]!;
+    const labels = usedTrigger
+      ? ['Mantener el acuerdo gatillo vigente', 'Abrir una mesa técnica para renegociar el porcentaje', 'Escalonar el aumento restante en dos tramos']
+      : historyCount >= 2
+        ? latePhaseLabels
+        : ['Escalonar aumentos para proteger las aulas', 'Declarar conciliación obligatoria y negociar', 'Ofrecer bonos extraordinarios sin ampliar la base salarial'];
+    const evolvedChoices = decision.choices.map((choice, index) => ({
+      ...choice,
+      id: `choice-paritaria-evolution-${historyCount}-${index}`,
+      label: labels[index] ?? choice.label,
+      description: usedRaise && index === 0
+        ? 'Ya concediste el 45% en un antecedente. Esta opción conserva lo firmado sin repetir el desembolso inicial.'
+        : choice.description,
+    }));
+    const blockedPastChoice = usedRaise
+      ? [{
+        ...decision.choices[0]!,
+        id: `choice-paritaria-exhausted-${historyCount}`,
+        label: 'Conceder nuevamente el aumento del 45%',
+        disabled: true,
+        disabledReason: 'No disponible: ya existe un acuerdo salarial vigente con ese porcentaje.',
+      }]
+      : [];
+    return {
+      ...decision,
+      choices: [...blockedPastChoice, ...evolvedChoices],
+    };
+  }
+
+  if (decision.id === 'dec-fmi-renegociacion') {
+    const remainingReserves = Math.max(0, Math.round(state.nation.economy.reserves));
+    return {
+      ...decision,
+      choices: decision.choices.map((choice) => choice.id.includes('aceptar-condiciones')
+        ? { ...choice, label: `Renegociar el acuerdo vigente con margen de reservas (${remainingReserves}% disponible)` }
+        : choice),
+    };
+  }
+
+  return decision;
+}
+
+function addExceptionalPath(decision: Decision, state: GameState): Decision {
+  const canAppear = state.nation.governance.corruption >= 42
+    || state.reputation.prensa <= 38
+    || getImplicitPoliticalCapital(state) <= 28;
+  const applicable = decision.repeatable && ['economico', 'politico', 'social', 'mediatico'].includes(decision.category);
+  if (!canAppear || !applicable || decision.choices.some((choice) => choice.id.startsWith('choice-via-informal-'))) return decision;
+
+  const choiceId = `choice-via-informal-${decision.id}`;
+  return {
+    ...decision,
+    choices: [
+      ...decision.choices,
+      {
+        id: choiceId,
+        label: 'Usar una vía informal para cerrar el conflicto',
+        description: 'Un operador cercano ofrece acelerar el acuerdo por fuera del procedimiento. La ventaja llega hoy; la prueba puede aparecer mucho después.',
+        preview: {
+          gains: [{ icon: '⚡', label: 'Resolución política inmediata', magnitude: 'fuerte' }, { icon: '🤝', label: 'Apoyo de aliados', magnitude: 'moderado' }],
+          losses: [{ icon: '⚠️', label: 'Riesgo institucional acumulativo', magnitude: 'fuerte' }],
+          risks: [{ icon: '🕵️', label: 'Filtraciones, investigación y causa futura', magnitude: 'fuerte' }],
+          beneficiaries: ['Operadores políticos', 'Empresarios cercanos'],
+          opponents: ['Prensa', 'Justicia', 'Oposición'],
+        },
+        effects: {
+          national: { governance: { corruption: 7, institutionality: -2 } },
+          reputation: { empresarios: 7, prensa: -5, 'clase-media': -3 },
+          character: { popularity: 2, pragmatismo: 5, idealismo: -6 },
+        },
+        delayedEffects: [
+          { turnsDelay: 6, probability: 0.55, effects: { national: { governance: { corruption: 6 } }, reputation: { prensa: -5 } }, description: 'Un periodista encuentra una transferencia que conecta al operador con la decisión y abre una investigación.', sourceDecisionId: decision.id, originTurn: 0 },
+          { turnsDelay: 18, probability: 0.35, effects: { national: { governance: { institutionality: -8 }, society: { trust: -5 } }, character: { popularity: -8 } }, description: 'Una declaración de arrepentido reconstruye quién participó, quién sabía y qué pruebas todavía existen.', sourceDecisionId: decision.id, originTurn: 0 },
+          { turnsDelay: 36, probability: 0.2, effects: { national: { governance: { institutionality: -10 } }, character: { stress: 8, popularity: -10 } }, description: 'La causa judicial alcanza al gobierno cuando la memoria pública ya creía cerrado el expediente.', sourceDecisionId: decision.id, originTurn: 0 },
+        ],
+      },
+    ],
+  };
+}
+
+function annotateChoiceAvailability(decision: Decision, state: GameState): DecisionChoice[] {
+  const politicalCapital = getImplicitPoliticalCapital(state);
+  const reserves = state.nation.economy.reserves;
+  const investment = state.nation.economy.investment;
+  return decision.choices.map((choice) => {
+    let disabledReason: string | undefined = choice.disabledReason;
+    const reserveCost = Math.max(0, -(choice.effects.national?.economy?.reserves ?? 0));
+    const investmentCost = Math.max(0, -(choice.effects.national?.economy?.investment ?? 0));
+    const politicalCost = Object.values(choice.effects.reputation ?? {})
+      .filter((value) => value < 0)
+      .reduce((sum, value) => sum + Math.abs(value), 0)
+      + Math.max(0, -(choice.effects.national?.governance?.institutionality ?? 0)) * 2;
+
+    if (choice.disabled) {
+      disabledReason ??= 'No disponible: esta opción ya fue agotada por la historia del mandato.';
+    } else if (reserveCost > reserves) {
+      disabledReason = `No disponible: quedan ${Math.round(reserves)}% de reservas y esta opción requiere ${reserveCost}%.`;
+    } else if (investmentCost > investment) {
+      disabledReason = `No disponible: el margen de obra e inversión restante es ${Math.round(investment)}%.`;
+    } else if (hasUsedChoice(state, choice.id) && (
+      choice.id.includes('oro')
+      || choice.id.includes('swap')
+      || choice.id.includes('informal')
+      || (decision.id === 'dec-paritaria-docente' && (choice.id.includes('conceder-paritaria') || choice.id.includes('clausula-gatillo')))
+    )) {
+      disabledReason = 'No disponible: este recurso o vía ya fue utilizado durante el mandato.';
+    } else if (politicalCost >= 28 && politicalCapital < 22) {
+      disabledReason = `No disponible: el capital político implícito ya no alcanza para absorber este costo (${politicalCapital}/100).`;
+    }
+
+    return disabledReason
+      ? { ...choice, disabled: true, disabledReason }
+      : { ...choice, disabled: false, disabledReason: undefined };
+  });
 }
 
 function isCampaignWindow(state: GameState, election: 'legislative' | 'presidential'): boolean {

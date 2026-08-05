@@ -21,7 +21,7 @@ import { createInitialMedia, createInitialSocialMedia } from './media';
 import { createInitialPatterns, evaluatePlayerProfile } from './pattern-detector';
 import { applyReputationChanges } from './reputation';
 import { simulateProvincesTick } from './provinces';
-import { getDecisionCauseKey, getDecisionFamilyId, getEligibleDecisions } from './decisions';
+import { getDecisionCauseKey, getDecisionFamilyId, getEligibleDecisions, prepareDecisionForState } from './decisions';
 import { generateDailyHeadlines } from './headlines';
 import {
   checkForScarTrigger,
@@ -791,7 +791,10 @@ export function advanceTurn(state: GameState): GameState {
       const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent.effects);
       currentNation = updated.nation;
       currentReputation = updated.reputation;
-      contextualDecision = generateContextualDecision({ ...eventContext, nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent, state.seed + nextTurn);
+      const generatedDecision = generateContextualDecision({ ...eventContext, nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent, state.seed + nextTurn);
+      contextualDecision = generatedDecision
+        ? prepareDecisionForState(generatedDecision, { ...eventContext, nation: currentNation, reputation: currentReputation, character: currentCharacter })
+        : null;
       newLogs.push({
         id: sysEvent.id,
         familyId: sysEvent.familyId,
@@ -949,7 +952,7 @@ export function advanceMandate(state: GameState): GameState {
 
 export function executeChoice(state: GameState, decision: Decision, choiceId: string): GameState {
   const choice = decision.choices.find((c) => c.id === choiceId);
-  if (!choice) return state;
+  if (!choice || choice.disabled) return state;
 
   const updated = applyEffects(state, choice.effects);
   const familyId = getDecisionFamilyId(decision);

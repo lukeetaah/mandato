@@ -453,6 +453,8 @@ export interface DecisionChoice {
   delayedEffects: DelayedEffect[];
   flags?: string[];
   emotionalImpact?: string; // Frase de responsabilidad emocional humana
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface Requirement {
