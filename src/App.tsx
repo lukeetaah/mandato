@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { useGameStore } from '@stores/game-store';
 import { MainMenu } from '@pages/MainMenu';
 import { CharacterCreator } from '@pages/CharacterCreator';
@@ -42,6 +43,7 @@ export function App() {
         />
       )}
       <SiteFooter />
+      <Analytics />
     </div>
   );
 }
