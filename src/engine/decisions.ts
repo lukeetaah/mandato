@@ -688,7 +688,7 @@ export function getEligibleDecisions(state: GameState): Decision[] {
     }
     return isRelevantToCountry(d.id, state);
   }).map((decision) => {
-    const contextualized = contextualizeDecision(decision, state);
+    const contextualized = contextualizeRecurringDecision(contextualizeDecision(decision, state), state);
     const causeKey = getDecisionCauseKey(decision, state);
     return {
       ...contextualized,
@@ -727,6 +727,66 @@ function contextualizeDecision(decision: Decision, state: GameState): Decision {
       { id: `choice-transporte-datos-${round}`, label: 'Publicar un tablero nacional de frecuencias', description: 'La gente puede ver qué línea funciona, cuál cobra y quién incumple. La transparencia no mueve colectivos, pero mueve votos.', preview: compactPreview('Control ciudadano', 'Costo tecnológico', 'Memes con cada demora'), effects: { national: { governance: { institutionality: 3 }, economy: { investment: -1 } }, reputation: { jovenes: 6, prensa: 5 }, character: { popularity: 3, pragmatismo: 3 } }, delayedEffects: [] },
       { id: `choice-transporte-desregulacion-${round}`, label: 'Desregular y dejar entrar nuevos operadores', description: 'Abrís la puerta a cooperativas, aplicaciones y empresas provinciales. Competencia, sí; coordinación, veremos.', preview: compactPreview('Más oferta potencial', 'Regulación más débil', 'Accidentes y concentración'), effects: { national: { economy: { investment: 4 }, governance: { institutionality: -2 } }, reputation: { mercados: 7, trabajadores: -10 }, character: { pragmatismo: 6 } }, delayedEffects: [] },
     ],
+  };
+}
+
+const RECURRENT_DECISION_TITLES: Record<string, string[]> = {
+  'dec-paritaria-docente': [
+    'Negociación Paritaria Nacional Docente',
+    'EDUCACIÓN: LA PARITARIA YA CARGA CON EL AÑO PASADO',
+    'ESCUELAS: EL SALARIO TAMBIÉN ES CAPACIDAD DE ENSEÑAR',
+    'EDUCACIÓN: SE DISCUTE QUÉ PAÍS QUEDA EN EL AULA',
+  ],
+  'dec-fmi-renegociacion': [
+    'Renegociación con el Organismo Multilateral de Crédito',
+    'DEUDA: EL ACUERDO ANTERIOR YA NO ALCANZA',
+    'CRÉDITO: EL ORGANISMO PIDE RESULTADOS, NO PROMESAS',
+    'DEUDA: EL PAÍS NEGOCIA CON MEMORIA',
+  ],
+  'dec-retenciones-agro': [
+    'Alícuota de Derechos de Exportación Agropecuarios',
+    'CAMPO: LA RETENCIÓN YA TIENE COSTO TERRITORIAL',
+    'EXPORTACIONES: EL GOBIERNO NEGOCIA CADA TONELADA',
+    'CAMPO: LA DISCUSIÓN YA NO ES SOLO IMPOSITIVA',
+  ],
+  'dec-cepo-cambiario': [
+    '🚨 CONTROL DE CAMBIOS Y DIVISAS CRÍTICAS',
+    'DIVISAS: EL CEPO VUELVE CON UNA BRECHA MÁS CARA',
+    'DÓLARES: LA INDUSTRIA PIDE UNA SALIDA QUE NO SEA OTRA TRABA',
+    'CAMBIO: EL MERCADO YA RECUERDA CADA RESTRICCIÓN',
+  ],
+  'dec-subsidio-transporte': [
+    'Aumento de Tarifas de Transporte Público',
+    'TRANSPORTE: LA TARIFA SOCIAL SE ROMPE POR EL MEDIO',
+    'TRANSPORTE: EL BOLETO SE CONVIERTE EN MAPA POLÍTICO',
+    'TRANSPORTE: LA RED YA NO PUEDE VOLVER AL PUNTO DE PARTIDA',
+  ],
+  'dec-campana-legislativa': [
+    'CAMPAÑA LEGISLATIVA: EL CONGRESO SE JUEGA EN LA CALLE',
+    'CONGRESO: LA CAMPAÑA YA PAGA LAS DEUDAS DEL PRIMER AÑO',
+    'ELECCIONES: EL MAPA SE DISCUTE PROVINCIA POR PROVINCIA',
+  ],
+  'dec-oposicion-prensa': [
+    'OPOSICIÓN: LA CARPETA QUE PUEDE DEVOLVERTE AL CENTRO',
+    'OPOSICIÓN: LA INVESTIGACIÓN CAMBIA DE MANOS',
+    'OPOSICIÓN: EL PASADO VUELVE COMO CAPITAL POLÍTICO',
+  ],
+};
+
+function contextualizeRecurringDecision(decision: Decision, state: GameState): Decision {
+  const familyId = getDecisionFamilyId(decision);
+  const occurrenceCount = state.decisionHistory.filter((entry) => (entry.familyId ?? entry.id) === familyId).length;
+  if (occurrenceCount === 0) return decision;
+
+  const variants = RECURRENT_DECISION_TITLES[decision.id] ?? [];
+  const variantTitle = variants[Math.min(occurrenceCount, variants.length - 1)];
+  const title = variantTitle
+    ? occurrenceCount >= variants.length ? `${variantTitle} · Fase ${occurrenceCount + 1}` : variantTitle
+    : `${decision.title} · Revisión ${occurrenceCount + 1}`;
+  return {
+    ...decision,
+    title,
+    description: `${decision.description} El expediente ya tiene ${occurrenceCount} antecedente${occurrenceCount === 1 ? '' : 's'} en este mandato; esta instancia se abre por una causa nueva y no parte de cero.`,
   };
 }
 

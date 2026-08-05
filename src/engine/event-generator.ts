@@ -418,6 +418,65 @@ export function generateSystemicEvent(state: GameState, seed: number): GameEvent
   };
 }
 
+const CONTEXTUAL_TITLE_VARIANTS: Record<string, string[]> = {
+  'ctx-energia': [
+    'OLA POLAR: LA RED ENTRA EN SEMANA CRÍTICA',
+    'ENERGÍA: EL INVIERNO VUELVE CON UNA CUENTA PENDIENTE',
+    'ENERGÍA: LA RED YA NO SOPORTA OTRO INVIERNO IGUAL',
+  ],
+  'ctx-reserve-excess': [
+    'CAJA LLENA, MANOS ABIERTAS: ¿QUIÉN ADMINISTRA EL SOBRANTE?',
+    'EL SOBRANTE TIENE MEMORIA: AUDITAR, GASTAR O PRESERVAR',
+    'LA ABUNDANCIA SE VUELVE POLÍTICA DE ESTADO',
+  ],
+  'ctx-fiestas': [
+    'FIESTAS: UNA NOCHE DE PAZ TAMBIÉN SE PRESUPUESTA',
+    'FIESTAS: EL CUIDADO YA TIENE UNA CUENTA PENDIENTE',
+    'FIESTAS: LA RED FEDERAL PIDE RENOVARSE',
+  ],
+  'ctx-ano-nuevo': [
+    'AÑO NUEVO: LAS PROVINCIAS PIDEN AYUDA ANTES DEL PRIMER BRINDIS',
+    'AÑO NUEVO: EL TEMPORAL VUELVE, PERO EL PAÍS RECUERDA',
+    'AÑO NUEVO: LA EMERGENCIA YA NO ADMITE LA MISMA RESPUESTA',
+  ],
+  'ctx-talento': [
+    'EMPRESAS TECNOLÓGICAS NO CONSIGUEN PERSONAL',
+    'LA ESCASEZ DE TALENTO YA TRABA LA COMPETITIVIDAD',
+    'LAS EMPRESAS CAMBIAN DE PAÍS POR LA FALTA DE PROFESIONALES',
+  ],
+  'ctx-absurdo': [
+    'EL PAPELÓN MUNICIPAL LLEGA A LA CASA DE GOBIERNO',
+    'LA TORPEZA LOCAL SE CONVIERTE EN EXPEDIENTE NACIONAL',
+    'EL PAÍS YA RECONOCE EL PATRÓN DEL PAPELÓN',
+  ],
+  'ctx-reconversion': [
+    'MILES DE PERSONAS QUEDAN FUERA DE LA NUEVA AUTOMATIZACIÓN',
+    'DESPUÉS DE LA AUTOMATIZACIÓN, EL TRABAJO PIDE UNA SEGUNDA RESPUESTA',
+    'LA RECONVERSIÓN SE DISCUTE COMO POLÍTICA PERMANENTE',
+  ],
+  'ctx-inundacion': [
+    'LA PERIFERIA PIDE BOMBAS, NO PROMESAS',
+    'LA CUENCA VUELVE A HABLAR: LA OBRA PENDIENTE YA TIENE HISTORIA',
+    'EL TEMPORAL PRUEBA SI EL ESTADO APRENDIÓ',
+  ],
+};
+
+function applyNarrativeVariant(decision: Decision, familyId: string, state: GameState): Decision {
+  const occurrenceCount = state.decisionHistory.filter((entry) => (entry.familyId ?? entry.id) === familyId).length;
+  if (occurrenceCount === 0) return decision;
+
+  const variants = CONTEXTUAL_TITLE_VARIANTS[familyId] ?? [];
+  const variantTitle = variants[Math.min(occurrenceCount, variants.length - 1)];
+  const title = variantTitle
+    ? occurrenceCount >= variants.length ? `${variantTitle} · Fase ${occurrenceCount + 1}` : variantTitle
+    : `CONTINUIDAD: ${decision.title} · Fase ${occurrenceCount + 1}`;
+  return {
+    ...decision,
+    title,
+    description: `${decision.description} Esta familia ya ocurrió ${occurrenceCount} vez${occurrenceCount === 1 ? '' : 'es'}; el expediente vuelve con una manifestación distinta y conserva ese antecedente.`,
+  };
+}
+
 /**
  * Las crisis no salen de una tómbola: aparecen cuando el mundo o una decisión previa
  * les da sentido. Estas decisiones usan el mismo flujo de expedientes del escritorio.
@@ -449,7 +508,7 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
   });
 
   if (state.calendar.season === 'Invierno' && state.nation.economy.reserves < 55 && canRecur('ctx-energia')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-energia'),
       id: `ctx-energia-${state.turn}`,
       title: 'OLA POLAR: LA RED ENTRA EN SEMANA CRÍTICA',
@@ -461,11 +520,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-energia-importar-${state.turn}`, label: 'Importar gas de emergencia', description: 'Asegurás calefacción y actividad, aun pagando la factura en divisas.', preview: simplePreview('Continuidad de servicios esenciales', 'Menos reservas'), effects: { national: { economy: { reserves: -7 }, society: { health: 3, trust: 3 } }, reputation: { 'clase-media': 4, mercados: -3 } }, delayedEffects: [] },
         { id: `ctx-energia-racionar-${state.turn}`, label: 'Racionar el consumo industrial por dos semanas', description: 'Protegés las reservas y trasladás el costo a fábricas y empleos temporarios.', preview: simplePreview('Ahorro de divisas', 'Paradas de producción'), effects: { national: { economy: { reserves: 3, gdp: -3 }, society: { employment: -2 } }, reputation: { industria: -8 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-energia', state);
   }
 
   if (event.id.includes('reserve-excess') && canRecur('ctx-reserve-excess')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-reserve-excess'),
       id: `ctx-reserve-excess-${state.turn}`,
       title: 'CAJA LLENA, MANOS ABIERTAS: ¿QUIÉN ADMINISTRA EL SOBRANTE?',
@@ -478,11 +537,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-reserve-spend-${state.turn}`, label: 'Lanzar un plan de obras y alivio inmediato', description: 'La plata sale rápido hacia rutas, hospitales y tarifas. La gente ve movimiento; los contratistas también.', preview: simplePreview('Alivio visible', 'Riesgo de sobreprecios'), effects: { national: { economy: { reserves: -14, investment: 7 }, society: { health: 3, trust: 5 } }, reputation: { trabajadores: 7, empresarios: 5 } }, delayedEffects: [{ turnsDelay: 8, probability: 0.55, effects: { national: { governance: { corruption: 7 } } }, description: 'Una licitación de emergencia termina con tres empresas recién creadas y un expediente que huele a apuro.', sourceDecisionId: `ctx-reserve-excess-${state.turn}`, originTurn: 0 }] },
         { id: `ctx-reserve-preserve-${state.turn}`, label: 'Congelar el sobrante y defender la caja', description: 'No cedés a la fiesta del gasto. La reserva queda protegida, aunque el gobierno parece estar pintando la casa mientras se cae una puerta.', preview: simplePreview('Colchón financiero', 'Malestar social'), effects: { national: { economy: { reserves: -3, gdp: -1 } }, reputation: { mercados: 6, trabajadores: -7, jubilados: -5 }, character: { popularity: -3, pragmatismo: 4 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-reserve-excess', state);
   }
 
   if (event.id.includes('fiestas-') && canRecur('ctx-fiestas')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-fiestas'),
       id: `ctx-fiestas-${state.turn}`,
       title: 'FIESTAS: UNA NOCHE DE PAZ TAMBIÉN SE PRESUPUESTA',
@@ -494,11 +553,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-fiestas-canasta-${state.turn}`, label: 'Financiar una red de cuidados y canastas', description: 'El Estado sostiene a los hogares más frágiles y garantiza servicios durante las celebraciones.', preview: simplePreview('Protección social', 'Menos reservas'), effects: { national: { economy: { reserves: -7 }, society: { trust: 6, poverty: -2 } }, reputation: { trabajadores: 7, jubilados: 6 } }, delayedEffects: [] },
         { id: `ctx-fiestas-guardia-${state.turn}`, label: 'Cubrir solo hospitales y seguridad', description: 'Priorizás lo indispensable y dejás que municipios, clubes y familias resuelvan el resto.', preview: simplePreview('Servicios críticos', 'Fiestas desiguales'), effects: { national: { economy: { reserves: -3 }, society: { trust: 1, socialConflicts: 2 } }, reputation: { mercados: 3, trabajadores: -3 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-fiestas', state);
   }
 
   if (event.id.includes('ano-nuevo-') && canRecur('ctx-ano-nuevo')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-ano-nuevo'),
       id: `ctx-ano-nuevo-${state.turn}`,
       title: 'AÑO NUEVO: LAS PROVINCIAS PIDEN AYUDA ANTES DEL PRIMER BRINDIS',
@@ -510,11 +569,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-ano-nuevo-coordinar-${state.turn}`, label: 'Coordinar un operativo federal de emergencia', description: 'Movilizás fondos, cuadrillas y hospitales con un mando único para recuperar servicios básicos.', preview: simplePreview('Respuesta rápida', 'Costo fiscal'), effects: { national: { economy: { reserves: -9, investment: 3 }, society: { health: 5, trust: 5, socialConflicts: -4 } }, reputation: { 'clase-media': 6, ongs: 3 } }, delayedEffects: [] },
         { id: `ctx-ano-nuevo-provincias-${state.turn}`, label: 'Transferir fondos y dejar que cada provincia resuelva', description: 'Mandás recursos con autonomía local; la velocidad puede mejorar, pero también las desigualdades entre gobernadores.', preview: simplePreview('Federalismo operativo', 'Respuesta desigual'), effects: { national: { economy: { reserves: -6 }, governance: { institutionality: 2 } }, reputation: { campo: 4, 'clase-media': -3 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-ano-nuevo', state);
   }
 
   if (state.nation.society.education < 54 && state.turn > 18 && canRecur('ctx-talento')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-talento'),
       id: `ctx-talento-${state.turn}`,
       title: 'EMPRESAS TECNOLÓGICAS NO CONSIGUEN PERSONAL',
@@ -526,11 +585,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-talento-formacion-${state.turn}`, label: 'Financiar una reconversión técnica acelerada', description: 'No resuelve mañana, pero recupera capacidades para los próximos años.', preview: simplePreview('Educación y empleo futuro', 'Costo fiscal inmediato'), effects: { national: { society: { education: 5 }, economy: { reserves: -2 } }, reputation: { universidades: 8, jovenes: 6 } }, delayedEffects: [{ turnsDelay: 8, probability: 0.8, effects: { national: { economy: { investment: 5 }, society: { employment: 3 } } }, description: 'Los primeros egresados de la reconversión cubren vacantes que antes quedaban sin ocupar.', sourceDecisionId: `ctx-talento-${state.turn}`, originTurn: 0 }] },
         { id: `ctx-talento-importar-${state.turn}`, label: 'Ofrecer visas exprés y contratar afuera', description: 'La planta se instala, pero el malestar por las oportunidades perdidas queda en casa.', preview: simplePreview('Inversión inmediata', 'Frustración local'), effects: { national: { economy: { investment: 4 }, society: { trust: -2 } }, reputation: { empresarios: 5, universidades: -5 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-talento', state);
   }
 
   if (event.category === 'satirico' && chance(rng, 0.45) && canRecur('ctx-absurdo')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-absurdo'),
       id: `ctx-absurdo-${state.turn}`,
       title: 'EL PAPELÓN MUNICIPAL LLEGA A LA CASA DE GOBIERNO',
@@ -542,11 +601,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-absurdo-auditar-${state.turn}`, label: 'Ordenar una auditoría sin conferencia de prensa', description: 'Corregís el asunto sin regalarle tres semanas de aire al escándalo.', preview: simplePreview('Señal de control', 'Costo político local'), effects: { national: { governance: { institutionality: 2 } }, reputation: { prensa: 2, 'clase-media': 2 } }, delayedEffects: [] },
         { id: `ctx-absurdo-dejar-${state.turn}`, label: 'Dejar que el municipio explique su propia rotonda', description: 'No intervenís: no toda rareza de provincia merece despacho presidencial.', preview: simplePreview('Autonomía local', 'Rumor sin desmentida'), effects: { national: { governance: { institutionality: 1 } }, reputation: { jovenes: 1 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-absurdo', state);
   }
 
   if (event.id.includes('ai-layoffs') && canRecur('ctx-reconversion')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-reconversion'),
       id: `ctx-reconversion-${state.turn}`,
       title: 'MILES DE PERSONAS QUEDAN FUERA DE LA NUEVA AUTOMATIZACION',
@@ -558,11 +617,11 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-reconversion-formar-${state.turn}`, label: 'Crear un fondo de reconversion con empresas', description: 'Las companias aportan, el Estado coordina y los sindicatos controlan la capacitacion.', preview: simplePreview('Empleo futuro', 'Costo fiscal inmediato'), effects: { national: { economy: { reserves: -3, investment: 3 }, society: { education: 4, socialConflicts: -3 } }, reputation: { trabajadores: 7, empresarios: 4 } }, delayedEffects: [{ turnsDelay: 6, probability: 0.8, effects: { national: { society: { employment: 4 }, economy: { gdp: 2 } } }, description: 'La primera camada de trabajadores reconvertidos vuelve a ocupar puestos que parecian perdidos.', sourceDecisionId: `ctx-reconversion-${state.turn}`, originTurn: 0 }] },
         { id: `ctx-reconversion-dejar-${state.turn}`, label: 'Dejar que el mercado absorba el shock', description: 'Evitas crear otra burocracia, pero aceptas meses de incertidumbre y protestas.', preview: simplePreview('Menor gasto publico', 'Mas conflicto social'), effects: { national: { society: { employment: -3, socialConflicts: 8 }, economy: { investment: 4 } }, reputation: { empresarios: 8, trabajadores: -12 } }, delayedEffects: [] },
       ],
-    };
+    }, 'ctx-reconversion', state);
   }
 
   if (event.id.includes('flooded-capital') && canRecur('ctx-inundacion')) {
-    return {
+    return applyNarrativeVariant({
       ...common('ctx-inundacion'),
       id: `ctx-inundacion-${state.turn}`,
       title: 'LA PERIFERIA PIDE BOMBAS, NO PROMESAS',
@@ -574,7 +633,7 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
         { id: `ctx-inundacion-obra-${state.turn}`, label: 'Financiar obras visibles de emergencia', description: 'Manda bombas y cuadrillas donde las camaras ya estan transmitiendo.', preview: simplePreview('Alivio rapido', 'Obras incompletas'), effects: { national: { economy: { reserves: -5 }, society: { trust: 5, health: 2 } }, reputation: { 'clase-media': 5, ongs: -2 } }, delayedEffects: [] },
         { id: `ctx-inundacion-cuenca-${state.turn}`, label: 'Reparar las cuencas aunque no se vea', description: 'Priorizas drenajes y mantenimiento para que el proximo temporal no encuentre al Estado distraido.', preview: simplePreview('Resiliencia futura', 'Malestar inmediato'), effects: { national: { economy: { reserves: -3, investment: 4 }, society: { trust: -2 } }, reputation: { ongs: 7, 'clase-media': -3 } }, delayedEffects: [{ turnsDelay: 10, probability: 0.75, effects: { national: { economy: { gdp: 3 }, society: { socialConflicts: -5 } } }, description: 'La cuenca reparada evita una segunda inundacion y la obra, por fin, empieza a explicarse sola.', sourceDecisionId: `ctx-inundacion-${state.turn}`, originTurn: 0 }] },
       ],
-    };
+    }, 'ctx-inundacion', state);
   }
 
   return null;

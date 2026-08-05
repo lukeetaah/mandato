@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { CalendarState } from '@engine/types';
 import { useGameStore } from '@stores/game-store';
 import { Badge } from '@components/ui/Badge';
@@ -47,6 +47,20 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
   const [selectedYear, setSelectedYear] = useState<number>(gameState?.calendar.year ?? 2032);
   const [inspectMonth, setInspectMonth] = useState<number | null>(null);
   const [activeItemDetail, setActiveItemDetail] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('mi-mandato-calendar-expanded') === 'true';
+  });
+
+  useEffect(() => {
+    if (gameState) setSelectedYear(gameState.calendar.year);
+  }, [gameState?.calendar.year]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('mi-mandato-calendar-expanded', String(isExpanded));
+    }
+  }, [isExpanded]);
 
   if (!gameState) return null;
 
@@ -122,7 +136,28 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
 
   return (
     <div className="space-y-4">
-      {/* Marco principal del Calendario de Pared */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((expanded) => !expanded)}
+        className="w-full glass-panel rounded-2xl border border-amber-500/30 px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-amber-400/70 transition-colors cursor-pointer"
+        aria-expanded={isExpanded}
+      >
+        <span className="flex items-center gap-3 min-w-0">
+          <span className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg shrink-0">📅</span>
+          <span className="min-w-0">
+            <span className="block text-xs font-black uppercase tracking-[0.16em] text-amber-300">Calendario</span>
+            <span className="block text-xs text-slate-400 truncate">
+              {calendar.year} · {MONTH_NAMES[calendar.month - 1]} · {calendar.monthCycleName} · Quincena {calendar.fortnight}
+            </span>
+          </span>
+        </span>
+        <span className="flex items-center gap-2 text-xs font-bold text-slate-400 shrink-0">
+          {isExpanded ? 'Minimizar' : 'Ver año y memoria'}
+          <span className="text-amber-300 text-lg leading-none">{isExpanded ? '⌃' : '⌄'}</span>
+        </span>
+      </button>
+
+      {isExpanded && (
       <div className="glass-panel p-5 rounded-2xl border border-slate-700/80 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950">
         
         {/* Encabezado estilo Calendario de Pared y Herramienta de Planificación */}
@@ -275,7 +310,10 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
         </div>
       </div>
 
+      )}
+
       {/* Modal de Inspección del Mes (Timeline compacto con tarjetas e interactividad) */}
+
       <Modal
         isOpen={inspectMonth !== null}
         onClose={() => {
@@ -425,5 +463,3 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
     </div>
   );
 };
-
-

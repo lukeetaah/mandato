@@ -3,6 +3,7 @@ import { useGameStore } from '@stores/game-store';
 import { CAREER_LABELS } from '@engine/constants';
 import { Badge } from '@components/ui/Badge';
 import { Modal } from '@components/ui/Modal';
+import { HeadlineBanner } from '@components/game/HeadlineBanner';
 
 const MONTH_NAMES = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -20,7 +21,7 @@ export const Header: React.FC = () => {
 
   if (!gameState) return null;
 
-  const { character, turn, calendar } = gameState;
+  const { character, turn, calendar, dailyHeadlines } = gameState;
   const monthName = MONTH_NAMES[(calendar.month ?? 1) - 1] ?? 'Ene';
 
   const handleManualSave = () => {
@@ -41,8 +42,9 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="h-14 glass-panel border-b border-slate-800 px-6 flex items-center justify-between z-20">
-        <div className="flex items-center gap-4">
+      <header className="glass-panel border-b border-slate-800 z-20">
+        <div className="min-h-14 px-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           <h1 className="text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-amber-300 to-sky-200">
             MI MANDATO
           </h1>
@@ -53,7 +55,7 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-xs shrink-0">
           <div className="hidden md:flex items-center gap-2">
             <span className="font-bold text-slate-100">{character.name} {character.surname}</span>
             <Badge variant="sky">{CAREER_LABELS[character.career]}</Badge>
@@ -80,6 +82,8 @@ export const Header: React.FC = () => {
             <span className="hidden sm:inline">Menú / Salir</span>
           </button>
         </div>
+        </div>
+        <HeadlineBanner headlines={dailyHeadlines} />
       </header>
 
       {/* Modal de Opciones y Guardado */}

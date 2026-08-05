@@ -86,7 +86,7 @@ export const StatBar: React.FC<StatBarProps> = ({
 
   return (
     <div
-      className="w-full relative cursor-help"
+      className={`w-full relative cursor-help ${showTooltip ? 'z-30' : 'z-0'}`}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
@@ -106,7 +106,7 @@ export const StatBar: React.FC<StatBarProps> = ({
 
       {/* Tooltip con diagnóstico educativo y personalizado */}
       {showTooltip && (
-        <div className="absolute left-0 bottom-full mb-2 z-50 w-72 p-3.5 rounded-xl bg-slate-950/95 border border-sky-500/40 text-slate-200 text-xs shadow-2xl backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 space-y-2">
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-2rem)] p-3.5 rounded-xl bg-slate-950/95 border border-sky-500/40 text-slate-200 text-xs shadow-2xl backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 space-y-2">
           <div className="flex justify-between items-center border-b border-slate-800 pb-1.5 font-bold">
             <span className="text-sky-400">{label} ({Math.round(value)}%)</span>
             <span className="text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded">{statusLevel}</span>

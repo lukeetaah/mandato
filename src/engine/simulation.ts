@@ -83,21 +83,28 @@ function evolveLifecycle(originTurn: number, turn: number): LogEntry['lifecycle'
 function prepareSystemicEvent(state: GameState, event: GameEvent, turn: number): GameEvent | null {
   const familyId = getEventFamilyId(event);
   const causeKey = event.causeKey ?? getEventCauseKey(state, familyId);
-  const previous = [...state.eventLog].reverse().find((entry) =>
+  const previousSameCause = [...state.eventLog].reverse().find((entry) =>
     entry.type === 'event'
       && (entry.familyId ?? entry.id) === familyId
       && entry.causeKey === causeKey,
   );
+  const previousSameTitle = [...state.eventLog].reverse().find((entry) =>
+    entry.type === 'event'
+      && (entry.familyId ?? entry.id) === familyId
+      && entry.title === event.title,
+  );
+  const previous = previousSameCause ?? previousSameTitle;
 
   if (!previous) return { ...event, familyId, causeKey };
 
   const age = turn - previous.turn;
   if (age < 72) return null;
+  if (previousSameTitle && turn - previousSameTitle.turn < 72) return null;
 
   const recurrenceCount = state.eventLog.filter((entry) =>
     entry.type === 'event'
       && (entry.familyId ?? entry.id) === familyId
-      && entry.causeKey === causeKey,
+      && (entry.causeKey === causeKey || entry.title === event.title),
   ).length + 1;
 
   return {

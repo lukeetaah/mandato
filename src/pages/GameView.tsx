@@ -69,6 +69,16 @@ export const GameView: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'calendario' && (
+        <div className="max-w-6xl mx-auto space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-100">Calendario y memoria del mandato</h2>
+            <p className="text-xs text-slate-400 mt-1">El año actual queda visible; abrí un mes para reconstruir qué ocurrió y cuándo.</p>
+          </div>
+          <CalendarWidget calendar={gameState.calendar} />
+        </div>
+      )}
+
       {activeTab === 'camino' && (
         <DecisionFlowMap eventLog={eventLog} detectedProfile={patterns.detectedProfile} />
       )}

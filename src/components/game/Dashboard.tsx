@@ -4,15 +4,14 @@ import type { NationalScar, PersistentConsequence } from '@engine/types';
 import { dedupeNationalScars } from '@engine/scars';
 import { Card } from '@components/ui/Card';
 import { StatBar } from '@components/ui/StatBar';
-import { HeadlineBanner } from './HeadlineBanner';
-import { CalendarWidget } from './CalendarWidget';
+import { DecisionQueueRibbon } from './DecisionQueueRibbon';
 
 export const Dashboard: React.FC = () => {
   const gameState = useGameStore((s) => s.gameState);
 
   if (!gameState) return null;
 
-  const { nation, character, calendar, dailyHeadlines, scars, persistentConsequences } = gameState;
+  const { nation, character, calendar, scars, persistentConsequences } = gameState;
   const [selectedScarId, setSelectedScarId] = useState<string | null>(null);
   const [expandedConsequenceId, setExpandedConsequenceId] = useState<string | null>(null);
   const activeConsequences = (persistentConsequences ?? []).filter((c) => c.visibleInUI && !c.resolved);
@@ -21,6 +20,7 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <DecisionQueueRibbon />
       {/* Indicadores visibles antes del escritorio presidencial */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
@@ -68,12 +68,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
       </div>
-
-      {/* Calendario + Elecciones */}
-      <CalendarWidget calendar={calendar} />
-
-      {/* Titulares del día */}
-      <HeadlineBanner headlines={dailyHeadlines} />
 
       {/* Cicatrices Nacionales (Memoria Viva) */}
       {uniqueScars.length > 0 && (

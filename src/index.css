@@ -59,3 +59,17 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(116, 185, 255, 0.4);
 }
+
+@keyframes miMandatoHeadlineMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.headline-marquee-track {
+  width: max-content;
+  animation: miMandatoHeadlineMarquee 78s linear infinite;
+}
+
+.headline-marquee-track:hover {
+  animation-play-state: paused;
+}
