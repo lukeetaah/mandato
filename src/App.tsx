@@ -4,6 +4,7 @@ import { MainMenu } from '@pages/MainMenu';
 import { CharacterCreator } from '@pages/CharacterCreator';
 import { GameView } from '@pages/GameView';
 import { GameOver } from '@pages/GameOver';
+import { SiteFooter } from '@components/layout/SiteFooter';
 
 type AppScreen = 'menu' | 'creator' | 'game' | 'gameover';
 
@@ -19,7 +20,7 @@ export function App() {
     : screen;
 
   return (
-    <>
+    <div className="min-h-screen bg-[#0a1628]">
       {effectiveScreen === 'menu' && (
         <MainMenu
           onStartNew={() => setScreen('creator')}
@@ -40,7 +41,8 @@ export function App() {
           onRestart={() => setScreen('menu')}
         />
       )}
-    </>
+      <SiteFooter />
+    </div>
   );
 }
 
