@@ -94,7 +94,6 @@ export const SiteFooter: React.FC = () => {
           )}
         </div>
       </div>
-      <p className="mx-auto mt-8 max-w-6xl border-t border-white/5 pt-4 text-xs text-slate-600">© {new Date().getFullYear()} Mi Mandato</p>
     </footer>
   );
 };

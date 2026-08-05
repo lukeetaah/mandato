@@ -19,9 +19,14 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const [showSkipWarning, setShowSkipWarning] = useState(false);
 
   const safeDeskObjects = deskObjects ?? [];
-  const visibleObjects = safeDeskObjects.filter(obj => !dismissedObjects.has(obj.id));
+  const visibleObjects = safeDeskObjects.filter(obj => {
+    if (dismissedObjects.has(obj.id)) return false;
+    // No interrumpe la partida con el informe automático que solo confirma que no pasó nada.
+    if (obj.id.startsWith('desk-report-') && obj.inspectText.includes('No hubo sobresaltos nacionales')) return false;
+    return true;
+  });
   const hasDecisionItems = visibleObjects.some(obj => obj.associatedDecisionId);
-  const hasAnyItems = visibleObjects.length > 0;
+  const informationalItems = visibleObjects.filter(obj => !obj.associatedDecisionId);
   const pacingMode = getPacingMode(gameState);
 
   const timeGradients: Record<string, string> = {
@@ -335,18 +340,25 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
             <span className="hidden md:inline text-[10px] text-amber-300/60 uppercase tracking-wider">
               {pacingMode === 'acelerado' ? 'Ritmo acelerado: informe al proximo asunto' : 'Ritmo quincenal: decisiones activas'}
             </span>
-            <Button
-              variant={hasAnyItems ? 'ghost' : 'gold'}
-              size="md"
-              onClick={hasAnyItems ? handleAdvance : () => { nextTurn(); setDismissedObjects(new Set()); }}
-              className={`w-full sm:w-auto ${hasDecisionItems ? 'text-amber-400' : hasAnyItems ? 'opacity-70 text-amber-400' : 'shadow-xl shadow-amber-500/20'}`}
-            >
-              {hasDecisionItems
-                ? '⚖️ Asuntos que requieren decisión'
-                : hasAnyItems
-                ? '📋 Revisar asuntos pendientes'
-                : 'Avanzar quincena ➔'}
-            </Button>
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <Button
+                variant={hasDecisionItems ? 'ghost' : 'gold'}
+                size="lg"
+                onClick={handleAdvance}
+                className={`w-full sm:w-auto min-w-[220px] font-black tracking-wide ${hasDecisionItems ? 'border border-amber-400/60 text-amber-300' : 'shadow-xl shadow-amber-500/30'}`}
+              >
+                ▶ AVANZAR QUINCENA
+              </Button>
+              {hasDecisionItems ? (
+                <span className="text-center text-[11px] font-bold text-rose-300 sm:text-right">
+                  Asuntos que requieren atención · {visibleObjects.filter((obj) => obj.associatedDecisionId).length} decisión{visibleObjects.filter((obj) => obj.associatedDecisionId).length === 1 ? '' : 'es'}
+                </span>
+              ) : informationalItems.length > 0 ? (
+                <span className="text-center text-[11px] text-amber-300/70 sm:text-right">
+                  Asuntos que requieren atención · informativos, podés abrirlos o seguir adelante
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

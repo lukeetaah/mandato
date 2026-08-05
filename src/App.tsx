@@ -5,6 +5,7 @@ import { CharacterCreator } from '@pages/CharacterCreator';
 import { GameView } from '@pages/GameView';
 import { GameOver } from '@pages/GameOver';
 import { SiteFooter } from '@components/layout/SiteFooter';
+import { Analytics } from '@vercel/analytics/react';
 
 type AppScreen = 'menu' | 'creator' | 'game' | 'gameover';
 
@@ -42,6 +43,7 @@ export function App() {
         />
       )}
       <SiteFooter />
+      <Analytics />
     </div>
   );
 }
