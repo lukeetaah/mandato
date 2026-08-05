@@ -109,6 +109,18 @@ export function generateDailyHeadlines(state: GameState, rng: RngState): Headlin
     }
   }
 
+  const latestScar = [...(state.scars ?? [])].sort((a, b) => b.originTurn - a.originTurn)[0];
+  if (latestScar && !usedTitles.has(normalizeHeadlineTitle(latestScar.title))) {
+    headlines.push({
+      id: `hl-scar-memory-${turn}`,
+      outletName: 'Archivo Federal',
+      title: `MEMORIA NACIONAL: ${latestScar.title}`,
+      subhead: `${latestScar.mediaEcho} La cicatriz todavía modifica las expectativas del país.`,
+      category: latestScar.category,
+      bias: 'sensacionalista',
+    });
+  }
+
   // 0. TITULAR DE DECISIÓN RECIENTE (si el jugador tomó una medida)
   const recentDecisions = (eventLog ?? []).filter((l) => l.type === 'decision').slice(-2);
   if (recentDecisions.length > 0) {

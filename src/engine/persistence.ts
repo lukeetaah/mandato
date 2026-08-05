@@ -131,18 +131,52 @@ function normalizeStoredGame(value: unknown): GameState | null {
       ? { ...fresh.sectorTrustMemory, ...state.sectorTrustMemory }
       : fresh.sectorTrustMemory,
     annualDocumentaries: Array.isArray(state.annualDocumentaries) ? state.annualDocumentaries : [],
-    scars: Array.isArray(state.scars) ? dedupeNationalScars(state.scars) : fresh.scars,
+    scars: Array.isArray(state.scars)
+      ? dedupeNationalScars(state.scars).map((scar) => ({
+        ...scar,
+        historyId: scar.historyId ?? `history-scar-${scar.id}`,
+        familyId: scar.familyId ?? scar.id.replace(/^scar-/, '').replace(/-del-\d+$/, ''),
+        lifecycle: scar.lifecycle ?? 'legado',
+      }))
+      : fresh.scars,
+    persistentConsequences: Array.isArray(state.persistentConsequences)
+      ? state.persistentConsequences.map((consequence) => ({
+        ...consequence,
+        historyId: consequence.historyId ?? `history-consequence-${consequence.id}`,
+        familyId: consequence.familyId ?? consequence.id,
+        lifecycle: consequence.lifecycle ?? (consequence.resolved ? 'resuelto' : 'normalizacion'),
+      }))
+      : fresh.persistentConsequences,
     // Garantizar arrays
     provinces: Array.isArray(state.provinces) ? state.provinces : fresh.provinces,
     parties: Array.isArray(state.parties) ? state.parties : fresh.parties,
     actors: Array.isArray(state.actors) ? state.actors : fresh.actors,
     pendingDecisions: Array.isArray(state.pendingDecisions) ? state.pendingDecisions : [],
-    activeDelayedEffects: Array.isArray(state.activeDelayedEffects) ? state.activeDelayedEffects : [],
+    activeDelayedEffects: Array.isArray(state.activeDelayedEffects)
+      ? state.activeDelayedEffects.map((effect, index) => ({
+        ...effect,
+        id: effect.id ?? `history-delayed-${effect.sourceDecisionId}-${effect.originTurn}-${index}`,
+        familyId: effect.familyId ?? effect.sourceDecisionId,
+      }))
+      : [],
     activeEvents: Array.isArray(state.activeEvents) ? state.activeEvents : [],
-    eventLog: Array.isArray(state.eventLog) ? state.eventLog.slice(-200) : [],
+    eventLog: Array.isArray(state.eventLog)
+      ? state.eventLog.map((entry, index) => ({
+        ...entry,
+        id: entry.id ?? `history-${entry.type}-${entry.turn}-${index}`,
+        familyId: entry.familyId ?? entry.sourceDecisionId ?? slugify(entry.title),
+        lifecycle: entry.lifecycle ?? 'legado',
+      }))
+      : [],
     mediaOutlets: Array.isArray(state.mediaOutlets) ? state.mediaOutlets : fresh.mediaOutlets,
     bills: Array.isArray(state.bills) ? state.bills : [],
-    decisionHistory: Array.isArray(state.decisionHistory) ? state.decisionHistory : [],
+    decisionHistory: Array.isArray(state.decisionHistory)
+      ? state.decisionHistory.map((entry, index) => ({
+        ...entry,
+        familyId: entry.familyId ?? entry.id,
+        historyId: entry.historyId ?? `history-decision-${entry.id}-${entry.turn}-${index}`,
+      }))
+      : [],
     // Garantizar objetos
     reputation: normalizeRecord(state.reputation, fresh.reputation),
     flags: typeof state.flags === 'object' && state.flags ? state.flags : {},
@@ -201,6 +235,15 @@ function normalizePatterns(
 function clampPositive(value: unknown, fallback: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
   return Math.max(0, value);
+}
+
+function slugify(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 // ─────────────────────────────────────────────

@@ -70,6 +70,16 @@ export type EventCategory =
   | 'personal'
   | 'satirico';
 
+export type NarrativeLifecycle =
+  | 'nacimiento'
+  | 'expansion'
+  | 'normalizacion'
+  | 'olvido'
+  | 'legado'
+  | 'resuelto'
+  | 'consumido'
+  | 'expirado';
+
 export type ReputationGroup =
   | 'empresarios'
   | 'trabajadores'
@@ -238,6 +248,11 @@ export type ConsequenceCategory =
 
 export interface PersistentConsequence {
   id: string;
+  historyId?: string;
+  familyId?: string;
+  parentHistoryId?: string;
+  sourceDecisionId?: DecisionId;
+  sourceChoiceId?: string;
   title: string;
   summary: string; // Frase resumida en lenguaje humano
   category: ConsequenceCategory;
@@ -248,6 +263,9 @@ export interface PersistentConsequence {
   sectorMemory?: string; // Sector que guarda la memoria (sindicatos, mercados, campo, etc.)
   effects: Effects;
   resolved: boolean;
+  lifecycle?: NarrativeLifecycle;
+  resolvedTurn?: number;
+  lastUpdatedTurn?: number;
   visibleInUI: boolean;
 }
 
@@ -260,6 +278,9 @@ export interface WorldState {
 
 export interface NationalScar {
   id: string;
+  historyId?: string;
+  familyId?: string;
+  parentHistoryId?: string;
   title: string;
   description: string;
   originTurn: number;
@@ -267,6 +288,7 @@ export interface NationalScar {
   category: EventCategory;
   mediaEcho: string;
   icon: string;
+  lifecycle?: NarrativeLifecycle;
 }
 
 export interface ProvinceEconomy {
@@ -404,11 +426,15 @@ export interface Effects {
 }
 
 export interface DelayedEffect {
+  id?: string;
+  familyId?: string;
   turnsDelay: number;
   probability: number;
   effects: Effects;
   description: string;
   sourceDecisionId: DecisionId;
+  sourceChoiceId?: string;
+  parentHistoryId?: string;
   originTurn: number;
 }
 
@@ -438,6 +464,9 @@ export interface Requirement {
 
 export interface Decision {
   id: DecisionId;
+  familyId?: string;
+  causeKey?: string;
+  parentHistoryId?: string;
   title: string;
   description: string;
   source: string;
@@ -453,6 +482,9 @@ export interface Decision {
 
 export interface GameEvent {
   id: EventId;
+  familyId?: string;
+  causeKey?: string;
+  parentHistoryId?: string;
   title: string;
   description: string;
   category: EventCategory;
@@ -529,6 +561,16 @@ export interface PlayerPatterns {
 }
 
 export interface LogEntry {
+  id?: string;
+  familyId?: string;
+  parentId?: string;
+  sourceDecisionId?: DecisionId;
+  sourceChoiceId?: string;
+  causeKey?: string;
+  lifecycle?: NarrativeLifecycle;
+  resolvedTurn?: number;
+  systemsAffected?: string[];
+  actorIds?: ActorId[];
   turn: number;
   type: 'decision' | 'event' | 'election' | 'scandal' | 'personal' | 'system';
   title: string;
@@ -699,7 +741,15 @@ export interface GameState {
   bills: Bill[];
   patterns: PlayerPatterns;
   flags: Record<string, boolean>;
-  decisionHistory: Array<{ id: DecisionId; turn: number; choiceId: string }>;
+  decisionHistory: Array<{
+    id: DecisionId;
+    familyId?: string;
+    turn: number;
+    choiceId: string;
+    causeKey?: string;
+    historyId?: string;
+    parentHistoryId?: string;
+  }>;
   startedAt: number;
   updatedAt: number;
 }

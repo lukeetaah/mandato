@@ -8,8 +8,13 @@ export function createNationalScar(
   mediaEcho: string,
   icon: string = '📜'
 ): NationalScar {
+  const familyId = nationalScarKey({ title }).replace(/-del-\d+$/, '');
+  const parentHistoryId = [...state.eventLog].reverse().find((entry) => entry.type === 'event' || entry.type === 'decision')?.id;
   return {
     id: `scar-${nationalScarKey({ title })}`,
+    historyId: `history-scar-${familyId}-${state.turn}`,
+    familyId,
+    parentHistoryId,
     title,
     description,
     originTurn: state.turn,
@@ -17,6 +22,7 @@ export function createNationalScar(
     category,
     mediaEcho,
     icon,
+    lifecycle: 'nacimiento',
   };
 }
 
@@ -42,7 +48,7 @@ export function dedupeNationalScars(scars: NationalScar[]): NationalScar[] {
 export function checkForScarTrigger(state: GameState): NationalScar | null {
   const { nation, calendar } = state;
 
-  if (nation.economy.inflation > 80 && !state.scars.some((s) => s.title.toLowerCase().includes('hiperinflación') || s.id.includes('hiper'))) {
+  if (nation.economy.inflation > 80 && !state.scars.some((s) => s.familyId === 'la-gran-hiperinflacion' || s.id.includes('hiper'))) {
     return createNationalScar(
       state,
       `La gran hiperinflación del ${calendar.year}`,
@@ -53,7 +59,7 @@ export function checkForScarTrigger(state: GameState): NationalScar | null {
     );
   }
 
-  if (calendar.season === 'Invierno' && nation.economy.reserves < 15 && !state.scars.some((s) => s.title.toLowerCase().includes('invierno helado') || s.id.includes('gas'))) {
+  if (calendar.season === 'Invierno' && nation.economy.reserves < 15 && !state.scars.some((s) => s.familyId === 'el-invierno-frio' || s.id.includes('invierno-frio'))) {
     return createNationalScar(
       state,
       `El invierno frío del ${calendar.year}`,
@@ -64,7 +70,7 @@ export function checkForScarTrigger(state: GameState): NationalScar | null {
     );
   }
 
-  if (state.flags['reforma-universitaria'] && !state.scars.some((s) => s.title.toLowerCase().includes('huelga universitaria') || s.id.includes('universitaria'))) {
+  if (state.flags['reforma-universitaria'] && !state.scars.some((s) => s.familyId === 'la-tension-universitaria' || s.id.includes('tension-universitaria'))) {
     return createNationalScar(
       state,
       `La tensión universitaria del ${calendar.year}`,
@@ -75,7 +81,7 @@ export function checkForScarTrigger(state: GameState): NationalScar | null {
     );
   }
 
-  if (nation.society.employment < 35 && !state.scars.some((s) => s.title.toLowerCase().includes('colapso laboral') || s.id.includes('desempleo'))) {
+  if (nation.society.employment < 35 && !state.scars.some((s) => s.familyId === 'la-crisis-de-empleo' || s.id.includes('crisis-de-empleo'))) {
     return createNationalScar(
       state,
       `La crisis de empleo del ${calendar.year}`,
@@ -148,17 +154,63 @@ export function simulateAutonomousWorld(world: WorldState | undefined, turn: num
   };
 }
 
+function evolveConsequence(consequence: PersistentConsequence, state: GameState): PersistentConsequence {
+  const age = Math.max(0, state.turn - consequence.originTurn);
+  let lifecycle: PersistentConsequence['lifecycle'] = age < 2
+    ? 'nacimiento'
+    : age < 8
+      ? 'expansion'
+      : age < 24
+        ? 'normalizacion'
+        : age < 72
+          ? 'olvido'
+          : 'legado';
+  let resolved = consequence.resolved;
+  let resolvedTurn = consequence.resolvedTurn;
+
+  if (consequence.id === 'tension-credito-internacional'
+    && (state.nation.economy.reserves >= 25 || state.nation.economy.debt <= 60)) {
+    resolved = true;
+    lifecycle = 'resuelto';
+    resolvedTurn ??= state.turn;
+  }
+
+  if (consequence.id === 'fatiga-ajuste-social'
+    && age >= 6
+    && state.nation.society.socialConflicts <= 45) {
+    resolved = true;
+    lifecycle = 'resuelto';
+    resolvedTurn ??= state.turn;
+  }
+
+  if (lifecycle === 'legado') {
+    resolved = true;
+  }
+
+  return {
+    ...consequence,
+    resolved,
+    lifecycle,
+    resolvedTurn,
+    lastUpdatedTurn: state.turn,
+  };
+}
+
 /** Evaluación y combinación de consecuencias persistentes */
 export function evaluatePersistentConsequences(state: GameState): {
   updatedConsequences: PersistentConsequence[];
   emergentLogs: LogEntry[];
   butterflyLog?: LogEntry;
+  activatedConsequences: PersistentConsequence[];
 } {
   const current = state.persistentConsequences ?? [];
   const emergentLogs: LogEntry[] = [];
   let butterflyLog: LogEntry | undefined;
+  const activatedConsequences: PersistentConsequence[] = [];
 
-  const nextConsequences: PersistentConsequence[] = [...current];
+  const nextConsequences: PersistentConsequence[] = current.map((consequence) => evolveConsequence(consequence, state));
+  const latestDecision = [...state.decisionHistory].reverse()[0];
+  const latestHistory = [...state.eventLog].reverse().find((entry) => entry.type === 'event' || entry.type === 'decision');
 
   // 1. Evaluación de Combinación: Inflación alta + Ajuste repetido -> Fatiga social
   const hasAusterityFatigue = state.patterns.austerityMoves >= 4 && state.nation.society.socialConflicts > 45;
@@ -167,6 +219,11 @@ export function evaluatePersistentConsequences(state: GameState): {
   if (hasAusterityFatigue && !existingFatigue) {
     const newFatigue: PersistentConsequence = {
       id: 'fatiga-ajuste-social',
+      historyId: `history-consequence-fatiga-ajuste-social-${state.turn}`,
+      familyId: 'fatiga-ajuste-social',
+      parentHistoryId: latestHistory?.id ?? latestDecision?.historyId,
+      sourceDecisionId: latestDecision?.id,
+      sourceChoiceId: latestDecision?.choiceId,
       title: 'Fatiga social por acumulación de ajustes',
       summary: 'La población muestra menor tolerancia ante nuevos incrementos de tarifas o recortes de gasto.',
       category: 'persistente',
@@ -181,10 +238,19 @@ export function evaluatePersistentConsequences(state: GameState): {
       sectorMemory: 'trabajadores',
       effects: { reputation: { trabajadores: -8, 'clase-media': -6 } },
       resolved: false,
+      lifecycle: 'nacimiento',
+      lastUpdatedTurn: state.turn,
       visibleInUI: true,
     };
     nextConsequences.push(newFatigue);
+    activatedConsequences.push(newFatigue);
     emergentLogs.push({
+      id: newFatigue.historyId,
+      familyId: newFatigue.familyId,
+      parentId: newFatigue.parentHistoryId,
+      sourceDecisionId: newFatigue.sourceDecisionId,
+      sourceChoiceId: newFatigue.sourceChoiceId,
+      lifecycle: 'nacimiento',
       turn: state.turn,
       type: 'event',
       title: newFatigue.title,
@@ -200,6 +266,11 @@ export function evaluatePersistentConsequences(state: GameState): {
   if (hasMarketTension && !existingMarketTension) {
     const newMarketConsequence: PersistentConsequence = {
       id: 'tension-credito-internacional',
+      historyId: `history-consequence-tension-credito-internacional-${state.turn}`,
+      familyId: 'tension-credito-internacional',
+      parentHistoryId: latestHistory?.id ?? latestDecision?.historyId,
+      sourceDecisionId: latestDecision?.id,
+      sourceChoiceId: latestDecision?.choiceId,
       title: 'Restricción de acceso al crédito externo',
       summary: 'El bajo nivel de reservas líquidas dificulta la colocación de nuevos títulos de deuda.',
       category: 'latente',
@@ -214,10 +285,19 @@ export function evaluatePersistentConsequences(state: GameState): {
       sectorMemory: 'mercados',
       effects: { national: { economy: { investment: -5 } }, reputation: { mercados: -10 } },
       resolved: false,
+      lifecycle: 'nacimiento',
+      lastUpdatedTurn: state.turn,
       visibleInUI: true,
     };
     nextConsequences.push(newMarketConsequence);
+    activatedConsequences.push(newMarketConsequence);
     emergentLogs.push({
+      id: newMarketConsequence.historyId,
+      familyId: newMarketConsequence.familyId,
+      parentId: newMarketConsequence.parentHistoryId,
+      sourceDecisionId: newMarketConsequence.sourceDecisionId,
+      sourceChoiceId: newMarketConsequence.sourceChoiceId,
+      lifecycle: 'nacimiento',
       turn: state.turn,
       type: 'event',
       title: newMarketConsequence.title,
@@ -230,6 +310,11 @@ export function evaluatePersistentConsequences(state: GameState): {
     const pastEntry = state.decisionHistory[Math.floor(state.turn / 2) % state.decisionHistory.length];
     if (pastEntry) {
       butterflyLog = {
+        id: `history-butterfly-${state.turn}`,
+        familyId: 'butterfly-government-memory',
+        parentId: pastEntry.historyId,
+        sourceDecisionId: pastEntry.id,
+        lifecycle: 'normalizacion',
         turn: state.turn,
         type: 'system',
         title: '🦋 Efecto mariposa: Memoria de gobierno',
@@ -246,6 +331,7 @@ export function evaluatePersistentConsequences(state: GameState): {
     updatedConsequences: consolidated,
     emergentLogs,
     butterflyLog,
+    activatedConsequences,
   };
 }
 
@@ -266,19 +352,29 @@ export function consolidateConsequences(consequences: PersistentConsequence[]): 
   for (const [sector, items] of Object.entries(sectorGroups)) {
     if (items.length >= 3) {
       const first = items[0]!;
+      const allResolved = items.every((item) => item.resolved);
+      const lastUpdatedTurn = Math.max(...items.map((item) => item.lastUpdatedTurn ?? item.originTurn));
       result.push({
         id: `consolidado-${sector}`,
+        historyId: `history-consequence-consolidated-${sector}-${first.originTurn}`,
+        familyId: `consequence-consolidated-${sector}`,
+        parentHistoryId: first.parentHistoryId,
+        sourceDecisionId: first.sourceDecisionId,
+        sourceChoiceId: first.sourceChoiceId,
         title: `Relación compleja con el sector ${sector}`,
         summary: `Múltiples antecedentes acumulados condicionan la negociación permanente con ${sector}.`,
         category: 'persistente',
         originTurn: first.originTurn,
         year: first.year,
         icon: '📜',
-        causalityChain: items.map((i) => i.title),
+        causalityChain: items.flatMap((item) => [item.title, ...(item.causalityChain ?? [])]),
         sectorMemory: sector,
         effects: first.effects,
-        resolved: false,
-        visibleInUI: true,
+        resolved: allResolved,
+        lifecycle: allResolved ? 'resuelto' : 'normalizacion',
+        resolvedTurn: allResolved ? lastUpdatedTurn : undefined,
+        lastUpdatedTurn,
+        visibleInUI: !allResolved,
       });
     } else {
       result.push(...items);
@@ -287,4 +383,3 @@ export function consolidateConsequences(consequences: PersistentConsequence[]): 
 
   return result;
 }
-

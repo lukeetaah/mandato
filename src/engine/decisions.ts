@@ -639,24 +639,63 @@ const CAMPAIGN_DECISIONS: Decision[] = [
   },
 ];
 
+export function getDecisionFamilyId(decision: Pick<Decision, 'id' | 'familyId'>): string {
+  return decision.familyId ?? decision.id;
+}
+
+export function getDecisionCauseKey(decision: Pick<Decision, 'id' | 'causeKey'>, state: GameState): string {
+  const { economy } = state.nation;
+  const { society, governance } = state.nation;
+  const scars = (state.scars ?? []).map((scar) => scar.familyId ?? scar.id).sort().join(',');
+  const consequences = (state.persistentConsequences ?? [])
+    .filter((consequence) => !consequence.resolved)
+    .map((consequence) => consequence.familyId ?? consequence.id)
+    .sort()
+    .join(',');
+  return [
+    decision.causeKey ?? decision.id,
+    `inf:${Math.floor(economy.inflation / 10)}`,
+    `res:${Math.floor(economy.reserves / 10)}`,
+    `debt:${Math.floor(economy.debt / 10)}`,
+    `conf:${Math.floor(society.socialConflicts / 10)}`,
+    `edu:${Math.floor(society.education / 5)}`,
+    `inst:${Math.floor(governance.institutionality / 10)}`,
+    `scars:${scars}`,
+    `consequences:${consequences}`,
+  ].join('|');
+}
+
 export function getEligibleDecisions(state: GameState): Decision[] {
   return [...DECISION_POOL, ...CAMPAIGN_DECISIONS].filter((d) => {
-    const history = state.decisionHistory.filter((dh) => dh.id === d.id);
+    const familyId = getDecisionFamilyId(d);
+    const causeKey = getDecisionCauseKey(d, state);
+    const history = state.decisionHistory.filter((dh) => (dh.familyId ?? dh.id) === familyId);
     if (history.length > 0 && !d.repeatable) {
       return false;
     }
 
-    if (d.repeatable && d.cooldown) {
+    if (d.repeatable) {
       const lastTaken = history[history.length - 1];
       // El cooldown de datos era demasiado corto: un expediente podía volver
       // a la mesa antes de que el país hubiera tenido tiempo de absorberlo.
-      const minimumNarrativeGap = d.id === 'dec-subsidio-transporte' ? 20 : Math.max(12, d.cooldown);
+      const minimumNarrativeGap = d.id === 'dec-subsidio-transporte' ? 20 : Math.max(12, d.cooldown ?? 0);
       if (lastTaken && state.turn - lastTaken.turn < minimumNarrativeGap) {
+        return false;
+      }
+      if (history.some((entry) => entry.causeKey && entry.causeKey === causeKey)) {
         return false;
       }
     }
     return isRelevantToCountry(d.id, state);
-  }).map((decision) => contextualizeDecision(decision, state));
+  }).map((decision) => {
+    const contextualized = contextualizeDecision(decision, state);
+    const causeKey = getDecisionCauseKey(decision, state);
+    return {
+      ...contextualized,
+      familyId: getDecisionFamilyId(decision),
+      causeKey,
+    };
+  });
 }
 
 /** Evita expedientes absurdos: cada tema aparece cuando el país tiene una razón para discutirlo. */
@@ -698,10 +737,14 @@ function isCampaignWindow(state: GameState, election: 'legislative' | 'president
 
 function isRelevantToCountry(decisionId: string, state: GameState): boolean {
   const { economy, society } = state.nation;
+  const scarFamilies = new Set((state.scars ?? []).map((scar) => scar.familyId ?? scar.id));
+  const hasEnergyScar = scarFamilies.has('el-invierno-frio');
+  const hasEducationScar = scarFamilies.has('la-tension-universitaria');
+  const hasEmploymentScar = scarFamilies.has('la-crisis-de-empleo');
 
   switch (decisionId) {
     case 'dec-crisis-reservas-urgente':
-      return economy.reserves < 42;
+      return economy.reserves < 42 || hasEnergyScar;
     case 'dec-cepo-cambiario':
       return economy.reserves < 55 || economy.inflation > 58;
     case 'dec-fmi-renegociacion':
@@ -709,9 +752,9 @@ function isRelevantToCountry(decisionId: string, state: GameState): boolean {
     case 'dec-retenciones-agro':
       return economy.reserves < 62 || state.reputation.campo < 42;
     case 'dec-paritaria-docente':
-      return society.education < 57 || state.reputation.docentes < 45 || economy.inflation > 46;
+      return society.education < 57 || state.reputation.docentes < 45 || economy.inflation > 46 || hasEducationScar;
     case 'dec-subsidio-transporte':
-      return economy.inflation > 42 || society.socialConflicts > 30;
+      return economy.inflation > 42 || society.socialConflicts > 30 || hasEmploymentScar;
     case 'dec-mundial-feriado':
       return state.turn >= 10 && state.turn <= 34;
     case 'dec-mascota-cadena':

@@ -31,6 +31,39 @@ const ACTOR_BY_CATEGORY: Partial<Record<EventCategory, string>> = {
   satirico: 'actor-empresario-influyente',
 };
 
+export function getEventFamilyId(event: Pick<GameEvent, 'id' | 'familyId'>): string {
+  if (event.familyId) return event.familyId;
+  const id = event.id;
+  if (id.startsWith('ev-life-')) return id.replace(/^ev-life-/, '').replace(/-\d+$/, '');
+  if (id.startsWith('ev-sys-')) return id.replace(/^ev-/, '').replace(/-\d+-\d+$/, '');
+  if (id.startsWith('ev-reserve-excess-')) return 'reserve-excess';
+  if (id.startsWith('ev-fiestas-')) return 'fiestas';
+  if (id.startsWith('ev-ano-nuevo-')) return 'ano-nuevo';
+  return id.replace(/-\d+$/, '');
+}
+
+export function getNarrativeCauseKey(state: Pick<GameState, 'nation' | 'scars' | 'persistentConsequences'>, familyId: string): string {
+  const { economy } = state.nation;
+  const { society, governance } = state.nation;
+  const scars = (state.scars ?? []).map((scar) => scar.familyId ?? scar.id).sort().join(',');
+  const consequences = (state.persistentConsequences ?? [])
+    .filter((consequence) => !consequence.resolved)
+    .map((consequence) => consequence.familyId ?? consequence.id)
+    .sort()
+    .join(',');
+  return [
+    familyId,
+    `inf:${Math.floor(economy.inflation / 10)}`,
+    `res:${Math.floor(economy.reserves / 10)}`,
+    `debt:${Math.floor(economy.debt / 10)}`,
+    `edu:${Math.floor(society.education / 5)}`,
+    `conf:${Math.floor(society.socialConflicts / 10)}`,
+    `inst:${Math.floor(governance.institutionality / 10)}`,
+    `scars:${scars}`,
+    `consequences:${consequences}`,
+  ].join('|');
+}
+
 const NATIONAL_LIFE_EVENTS: Array<{
   id: string;
   category: EventCategory;
@@ -43,23 +76,23 @@ const NATIONAL_LIFE_EVENTS: Array<{
     id: 'eclipse-total',
     category: 'ambiental',
     when: (state) => state.turn > 4 && state.turn % 19 === 0,
-    title: 'El eclipse oscurece el mediodia y enciende el turismo',
-    description: 'Un eclipse cruza la Republica del Sur. Hoteles agotados, escuelas improvisando clases de astronomia y un gobernador que inaugura una sombra oficial.',
+    title: 'El eclipse oscurece el mediodía y enciende el turismo',
+    description: 'Un eclipse cruza la República del Sur. Hoteles agotados, escuelas improvisando clases de astronomía y un gobernador que inaugura una sombra oficial.',
     effects: { national: { economy: { tourism: 5, investment: 2 }, society: { trust: 2 } }, reputation: { jovenes: 5, 'clase-media': 3 } },
   },
   {
     id: 'concert-record',
     category: 'mediatico',
     when: (state) => state.turn > 6 && state.turn % 23 === 0,
-    title: 'Un recital desborda la logistica nacional',
-    description: 'Una banda internacional convoca a cientos de miles. El operativo funciona a medias: la economia nocturna festeja y el transporte pide otro presupuesto.',
+    title: 'Un recital desborda la logística nacional',
+    description: 'Una banda internacional convoca a cientos de miles. El operativo funciona a medias: la economía nocturna festeja y el transporte pide otro presupuesto.',
     effects: { national: { economy: { tourism: 4, gdp: 1 }, society: { socialConflicts: 2 } }, reputation: { jovenes: 7, trabajadores: -2 } },
   },
   {
     id: 'film-award',
     category: 'internacional',
     when: (state) => state.turn > 8 && state.turn % 29 === 0,
-    title: 'Una pelicula del Sur gana un premio inesperado',
+    title: 'Una película del Sur gana un premio inesperado',
     description: 'El cine nacional vuelve del extranjero con un premio. El gobierno quiere colgarse la medalla; la directora pide que primero terminen de pagar el festival.',
     effects: { national: { governance: { internationalImage: 5 }, economy: { tourism: 2 } }, reputation: { jovenes: 4, prensa: 3 } },
   },
@@ -68,7 +101,7 @@ const NATIONAL_LIFE_EVENTS: Array<{
     category: 'social',
     when: (state) => state.turn > 10 && state.turn % 31 === 0,
     title: 'La inteligencia artificial deja miles de puestos en pausa',
-    description: 'Una plataforma automatiza tareas administrativas en todo el pais. Las empresas celebran productividad; los sindicatos preguntan quien entrenara a la gente que queda afuera.',
+    description: 'Una plataforma automatiza tareas administrativas en todo el país. Las empresas celebran productividad; los sindicatos preguntan quién entrenará a la gente que queda afuera.',
     effects: { national: { economy: { investment: 5, gdp: 2 }, society: { employment: -4, socialConflicts: 6 } }, reputation: { trabajadores: -8, jovenes: 5, empresarios: 5 } },
   },
   {
@@ -76,18 +109,148 @@ const NATIONAL_LIFE_EVENTS: Array<{
     category: 'mediatico',
     when: (state) => state.turn > 12 && state.turn % 37 === 0,
     title: 'Una red social nueva cambia la campaña en una semana',
-    description: 'Una aplicacion convierte cualquier discurso en una encuesta instantanea. Un streamer instala un escandalo antes de que el gabinete encuentre el boton de silenciar.',
+    description: 'Una aplicación convierte cualquier discurso en una encuesta instantánea. Un streamer instala un escándalo antes de que el gabinete encuentre el botón de silenciar.',
     effects: { national: { governance: { institutionality: -2 }, society: { polarization: 5 } }, reputation: { prensa: -3, jovenes: 4 } },
   },
   {
     id: 'flooded-capital',
     category: 'ambiental',
     when: (state) => state.turn > 14 && state.turn % 41 === 0,
-    title: 'Una inundacion convierte la periferia en archipielago',
+    title: 'Una inundación convierte la periferia en archipiélago',
     description: 'Lluvias extraordinarias desbordan tres cuencas. Un intendente transmite desde un bote y promete inaugurar el mismo puente apenas baje el agua.',
     effects: { national: { economy: { gdp: -3, investment: -2 }, society: { health: -2, trust: -4, socialConflicts: 5 } }, reputation: { 'clase-media': -5, ongs: -3 } },
   },
+  // ─── CATÁSTROFES NATURALES (nuevas) ───
+  {
+    id: 'delta-fires',
+    category: 'ambiental',
+    when: (state) => (state.calendar.season === 'Verano' || state.calendar.season === 'Primavera') && state.turn > 8 && state.turn % 17 === 0,
+    title: 'Incendios en el delta fluvial sin control',
+    description: 'Las llamas consumen miles de hectáreas del humedal. La columna de humo llega a la capital. Pescadores, productores y comunidades originarias piden ayuda urgente mientras el viento cambia de dirección.',
+    effects: { national: { economy: { gdp: -2, tourism: -4 }, society: { health: -3, trust: -5, socialConflicts: 4 } }, reputation: { ongs: -6, 'clase-media': -4, campo: -3 } },
+  },
+  {
+    id: 'drought-pampa',
+    category: 'ambiental',
+    when: (state) => (state.calendar.season === 'Verano' || state.calendar.season === 'Otoño') && state.nation.economy.reserves < 55 && state.turn % 13 === 0,
+    title: 'Sequía histórica golpea la Pampa Agrícola',
+    description: 'La falta de lluvias reduce la cosecha a la mitad. El campo pide fondos de emergencia; el gobierno debate si asistir al sector o priorizar el consumo interno.',
+    effects: { national: { economy: { gdp: -4, reserves: -5 }, society: { poverty: 3, socialConflicts: 5 } }, reputation: { campo: -8, trabajadores: -4, mercados: -5 } },
+  },
+  {
+    id: 'hailstorm-wineries',
+    category: 'ambiental',
+    when: (state) => state.calendar.season === 'Primavera' && state.turn > 6 && state.turn % 11 === 0,
+    title: 'Granizo destruye viñedos y frutales en Cuyo',
+    description: 'Una tormenta de granizo arrasa con cultivos de exportación. Los seguros no alcanzan y los productores exigen que el Estado declare la emergencia agropecuaria.',
+    effects: { national: { economy: { gdp: -2, investment: -3 } }, reputation: { campo: -10, 'clase-media': -2 } },
+  },
+  {
+    id: 'bridge-collapse',
+    category: 'social',
+    when: (state) => state.turn > 20 && state.nation.economy.gdp < 45 && state.turn % 19 === 0,
+    title: 'Colapso de puente en una ruta nacional',
+    description: 'Un puente sobre la ruta troncal cede por falta de mantenimiento. Tres camiones caen al río. La oposición exhibe el informe de auditoría que advertía el riesgo desde hace dos años.',
+    effects: { national: { economy: { investment: -4, gdp: -2 }, governance: { institutionality: -5 }, society: { trust: -8, socialConflicts: 6 } }, reputation: { 'clase-media': -7, prensa: -4 } },
+  },
+  {
+    id: 'blackout-winter',
+    category: 'ambiental',
+    when: (state) => state.calendar.season === 'Invierno' && state.nation.economy.reserves < 40 && state.turn % 7 === 0,
+    title: 'Apagón de doce horas en tres regiones',
+    description: 'La red eléctrica colapsa bajo la demanda invernal. Hospitales funcionan con generadores; fábricas pierden turnos de producción. El ministro de energía aparece en cadena nacional con cara de no haber dormido.',
+    effects: { national: { economy: { gdp: -3, investment: -2 }, society: { health: -2, trust: -6, socialConflicts: 8 } }, reputation: { industria: -8, 'clase-media': -6, trabajadores: -5 } },
+  },
+  {
+    id: 'cyber-attack',
+    category: 'politico',
+    when: (state) => state.turn > 15 && state.turn % 43 === 0,
+    title: 'Ataque cibernético al sistema de pagos del Estado',
+    description: 'Hackers comprometieron los servidores de la agencia tributaria. Los sueldos públicos se demoran 72 horas; los jubilados no pueden cobrar. El origen del ataque es incierto.',
+    effects: { national: { governance: { institutionality: -6, corruption: 3 }, society: { trust: -7 } }, reputation: { prensa: 5, 'clase-media': -5 } },
+  },
+  {
+    id: 'diplomatic-incident',
+    category: 'internacional',
+    when: (state) => state.nation.governance.internationalImage < 45 && state.turn > 12 && state.turn % 23 === 0,
+    title: 'Incidente diplomático con país vecino',
+    description: 'Un funcionario realizó declaraciones que el gobierno vecino calificó de inaceptables. La cancillería convoca al embajador; el episodio agita las redes y preocupa al sector exportador.',
+    effects: { national: { governance: { internationalImage: -8 }, economy: { investment: -3 } }, reputation: { mercados: -4, jovenes: 3 } },
+  },
+  {
+    id: 'university-protest',
+    category: 'social',
+    when: (state) => state.nation.society.education < 50 && state.turn > 8 && state.turn % 17 === 0,
+    title: 'Toma de facultades por recorte presupuestario',
+    description: 'Estudiantes ocupan las principales universidades en protesta por el congelamiento de partidas. Las clases se suspenden; los rectores piden una reunión urgente con el Ministerio.',
+    effects: { national: { society: { socialConflicts: 7, education: -3 }, governance: { institutionality: -2 } }, reputation: { universidades: -10, jovenes: -8, 'clase-media': -3 } },
+  },
+  {
+    id: 'science-breakthrough',
+    category: 'social',
+    when: (state) => state.nation.society.education > 55 && state.turn > 16 && state.turn % 37 === 0,
+    title: 'Investigadores locales logran un avance tecnológico',
+    description: 'Un equipo de científicos publica un hallazgo que atrae atención internacional. Las universidades piden presupuesto para sostenerlo; las empresas tecnológicas ofrecen contratos.',
+    effects: { national: { governance: { internationalImage: 6 }, economy: { investment: 4 } }, reputation: { universidades: 12, jovenes: 8, empresarios: 5 } },
+  },
+  {
+    id: 'oil-spill',
+    category: 'ambiental',
+    when: (state) => state.turn > 10 && state.turn % 31 === 0,
+    title: 'Derrame de crudo en el litoral atlántico',
+    description: 'Una tubería submarina de una concesionaria petrolífera cedió. La marea negra avanza sobre la costa turística. Las imágenes dan vuelta al mundo en horas.',
+    effects: { national: { economy: { tourism: -8, gdp: -2 }, society: { health: -3, trust: -6 }, governance: { internationalImage: -7 } }, reputation: { ongs: -8, 'clase-media': -5, campo: -4 } },
+  },
+  {
+    id: 'teachers-wildcat-strike',
+    category: 'social',
+    when: (state) => state.reputation.docentes < 40 && state.turn > 6 && state.turn % 11 === 0,
+    title: 'Paro docente salvaje sin acuerdo sindical',
+    description: 'Sin esperar la paritaria, decenas de escuelas paran por tiempo indeterminado. Los padres organizan guarderías improvisadas; la oposición pide interpelación al ministro de educación.',
+    effects: { national: { society: { education: -5, socialConflicts: 8 } }, reputation: { docentes: -12, 'clase-media': -6 } },
+  },
+  {
+    id: 'inflation-protest',
+    category: 'social',
+    when: (state) => state.nation.economy.inflation > 65 && state.turn % 9 === 0,
+    title: 'Cacerolazo espontáneo por el precio de la canasta básica',
+    description: 'Sin convocatoria oficial, ciudadanos salen a golpear cacerolas en toda la capital. El reclamo es simple: los precios no paran y los sueldos no alcanzan.',
+    effects: { national: { society: { socialConflicts: 10, trust: -8 } }, reputation: { trabajadores: -6, 'clase-media': -8 }, character: { popularity: -5 } },
+  },
+  {
+    id: 'banking-run',
+    category: 'economico',
+    when: (state) => state.nation.economy.reserves < 30 && state.nation.economy.inflation > 55 && state.turn % 13 === 0,
+    title: 'Corrida bancaria en las sucursales del centro',
+    description: 'Largas filas frente a los bancos. Los ahorristas retiran depósitos en divisas ante rumores de restricciones. El Banco Central emite un comunicado que nadie termina de leer.',
+    effects: { national: { economy: { reserves: -8, inflation: 5, investment: -10 }, society: { trust: -10, socialConflicts: 8 } }, reputation: { mercados: -15, 'clase-media': -10 } },
+  },
+  {
+    id: 'port-workers-strike',
+    category: 'social',
+    when: (state) => state.reputation.trabajadores < 40 && state.turn % 7 === 0,
+    title: 'Paro portuario interrumpe exportaciones',
+    description: 'Los trabajadores de los principales puertos paralizan operaciones en demanda de mejores condiciones. Los granos se acumulan en los silos; cada día de paro cuesta millones en divisas no liquidadas.',
+    effects: { national: { economy: { reserves: -4, gdp: -2 } }, reputation: { trabajadores: -8, campo: -5, empresarios: -4 } },
+  },
+  {
+    id: 'prison-riot',
+    category: 'social',
+    when: (state) => state.nation.society.insecurity > 60 && state.turn % 17 === 0,
+    title: 'Motín en el mayor penal federal',
+    description: 'Presos toman rehenes en protesta por el hacinamiento y la falta de atención médica. El operativo de negociación dura dos días; la cobertura televisiva es permanente.',
+    effects: { national: { governance: { institutionality: -4 }, society: { insecurity: 5, trust: -6 } }, reputation: { 'fuerzas-seguridad': -8, prensa: 3 } },
+  },
+  {
+    id: 'tech-startup-boom',
+    category: 'economico',
+    when: (state) => state.nation.society.education > 50 && state.nation.economy.inflation < 55 && state.turn % 29 === 0,
+    title: 'Eclosión de startups tecnológicas en el sur',
+    description: 'Una cohorte de empresas de software atrae inversión regional. Los jóvenes profesionales que antes emigraban empiezan a quedarse. Las universidades piden alianzas; los sindicatos preguntan qué derechos laborales aplicarán.',
+    effects: { national: { economy: { investment: 7, gdp: 3 } }, reputation: { jovenes: 10, universidades: 6, empresarios: 5 }, character: { popularity: 3 } },
+  },
 ];
+
 
 const CAMPAIGN_EVENTS: Array<{
   id: string;
@@ -264,12 +427,19 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
   const actorId = ACTOR_BY_CATEGORY[event.category] ?? 'actor-jefe-gabinete';
   const actor = state.actors.find((candidate) => candidate.id === actorId);
   const source = actor ? `${actor.name} ${actor.surname}` : 'Jefatura de Gabinete';
-  const common = {
+  const common = (familyId: string) => ({
     repeatable: false,
     cooldown: 0,
     requirements: [],
     sourceActorId: actorId,
-  };
+    familyId,
+    causeKey: getNarrativeCauseKey(state, familyId),
+    parentHistoryId: event.id,
+  });
+  const canRecur = (familyId: string) => !state.decisionHistory.some((entry) =>
+    (entry.familyId ?? entry.id) === familyId
+      && entry.causeKey === getNarrativeCauseKey(state, familyId),
+  );
   const simplePreview = (gain: string, loss: string) => ({
     gains: [{ icon: '✓', label: gain, magnitude: 'moderado' as const }],
     losses: [{ icon: '⚠', label: loss, magnitude: 'moderado' as const }],
@@ -278,9 +448,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     opponents: [],
   });
 
-  if (state.calendar.season === 'Invierno' && state.nation.economy.reserves < 55) {
+  if (state.calendar.season === 'Invierno' && state.nation.economy.reserves < 55 && canRecur('ctx-energia')) {
     return {
-      ...common,
+      ...common('ctx-energia'),
       id: `ctx-energia-${state.turn}`,
       title: 'OLA POLAR: LA RED ENTRA EN SEMANA CRÍTICA',
       description: 'Escuelas y hospitales del sur piden gas de respaldo. El gobernador Roldán exige prioridad; Economía advierte que importar combustible erosiona las reservas.',
@@ -294,9 +464,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.id.includes('reserve-excess')) {
+  if (event.id.includes('reserve-excess') && canRecur('ctx-reserve-excess')) {
     return {
-      ...common,
+      ...common('ctx-reserve-excess'),
       id: `ctx-reserve-excess-${state.turn}`,
       title: 'CAJA LLENA, MANOS ABIERTAS: ¿QUIÉN ADMINISTRA EL SOBRANTE?',
       description: 'El superávit extraordinario convirtió al Tesoro en una tentación nacional. Si repartís sin control, la abundancia se vuelve contratos inflados; si no hacés nada, la calle interpreta que acumulás mientras faltan servicios.',
@@ -311,9 +481,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.id.includes('fiestas-')) {
+  if (event.id.includes('fiestas-') && canRecur('ctx-fiestas')) {
     return {
-      ...common,
+      ...common('ctx-fiestas'),
       id: `ctx-fiestas-${state.turn}`,
       title: 'FIESTAS: UNA NOCHE DE PAZ TAMBIÉN SE PRESUPUESTA',
       description: 'Los intendentes quieren una canasta de emergencia y transporte nocturno; los hospitales piden guardias reforzadas. La tradición dice brindar. El expediente pregunta cuánto cuesta que nadie quede afuera.',
@@ -327,9 +497,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.id.includes('ano-nuevo-')) {
+  if (event.id.includes('ano-nuevo-') && canRecur('ctx-ano-nuevo')) {
     return {
-      ...common,
+      ...common('ctx-ano-nuevo'),
       id: `ctx-ano-nuevo-${state.turn}`,
       title: 'AÑO NUEVO: LAS PROVINCIAS PIDEN AYUDA ANTES DEL PRIMER BRINDIS',
       description: 'La catástrofe eléctrica y las inundaciones obligan a decidir si el gobierno nacional centraliza la respuesta o entrega recursos para que cada provincia actúe por su cuenta.',
@@ -343,9 +513,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (state.nation.society.education < 54 && state.turn > 18) {
+  if (state.nation.society.education < 54 && state.turn > 18 && canRecur('ctx-talento')) {
     return {
-      ...common,
+      ...common('ctx-talento'),
       id: `ctx-talento-${state.turn}`,
       title: 'EMPRESAS TECNOLÓGICAS NO CONSIGUEN PERSONAL',
       description: 'Una empresa de automatización suspendió su llegada: faltan perfiles técnicos. Rectores recuerdan que las alertas sobre educación se acumularon durante años.',
@@ -359,9 +529,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.category === 'satirico' && chance(rng, 0.45)) {
+  if (event.category === 'satirico' && chance(rng, 0.45) && canRecur('ctx-absurdo')) {
     return {
-      ...common,
+      ...common('ctx-absurdo'),
       id: `ctx-absurdo-${state.turn}`,
       title: 'EL PAPELÓN MUNICIPAL LLEGA A LA CASA DE GOBIERNO',
       description: `${event.description} La oposición exige una intervención; los intendentes piden que no se convierta una torpeza local en una guerra nacional.`,
@@ -375,9 +545,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.id.includes('ai-layoffs')) {
+  if (event.id.includes('ai-layoffs') && canRecur('ctx-reconversion')) {
     return {
-      ...common,
+      ...common('ctx-reconversion'),
       id: `ctx-reconversion-${state.turn}`,
       title: 'MILES DE PERSONAS QUEDAN FUERA DE LA NUEVA AUTOMATIZACION',
       description: 'La tecnologia llego antes que la politica. El gabinete debe decidir si compra tiempo, forma trabajadores o deja que cada empresa resuelva su propia transicion.',
@@ -391,9 +561,9 @@ export function generateContextualDecision(state: GameState, event: GameEvent, s
     };
   }
 
-  if (event.id.includes('flooded-capital')) {
+  if (event.id.includes('flooded-capital') && canRecur('ctx-inundacion')) {
     return {
-      ...common,
+      ...common('ctx-inundacion'),
       id: `ctx-inundacion-${state.turn}`,
       title: 'LA PERIFERIA PIDE BOMBAS, NO PROMESAS',
       description: 'La emergencia obliga a elegir entre una obra visible que calme las camaras o una reparacion lenta de las cuencas que no tendra inauguracion esta temporada.',

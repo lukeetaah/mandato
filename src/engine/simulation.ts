@@ -21,7 +21,7 @@ import { createInitialMedia, createInitialSocialMedia } from './media';
 import { createInitialPatterns, evaluatePlayerProfile } from './pattern-detector';
 import { applyReputationChanges } from './reputation';
 import { simulateProvincesTick } from './provinces';
-import { getEligibleDecisions } from './decisions';
+import { getDecisionCauseKey, getDecisionFamilyId, getEligibleDecisions } from './decisions';
 import { generateDailyHeadlines } from './headlines';
 import {
   checkForScarTrigger,
@@ -30,7 +30,7 @@ import {
   simulateAutonomousWorld,
   evaluatePersistentConsequences,
 } from './scars';
-import { generateContextualDecision, generateSystemicEvent } from './event-generator';
+import { generateContextualDecision, generateSystemicEvent, getEventFamilyId, getNarrativeCauseKey as getEventCauseKey } from './event-generator';
 
 const SEASONS: Array<'Verano' | 'Otoño' | 'Invierno' | 'Primavera'> = ['Verano', 'Otoño', 'Invierno', 'Primavera'];
 
@@ -67,6 +67,66 @@ const ERA_QUOTES = [
 
 const clamp = (value: number, max: number = 100) => Math.max(0, Math.min(max, value));
 
+function historyId(type: string, familyId: string, turn: number, ordinal: number = 0): string {
+  return `history-${type}-${familyId}-${turn}-${ordinal}`;
+}
+
+function evolveLifecycle(originTurn: number, turn: number): LogEntry['lifecycle'] {
+  const age = Math.max(0, turn - originTurn);
+  if (age < 2) return 'nacimiento';
+  if (age < 8) return 'expansion';
+  if (age < 24) return 'normalizacion';
+  if (age < 72) return 'olvido';
+  return 'legado';
+}
+
+function prepareSystemicEvent(state: GameState, event: GameEvent, turn: number): GameEvent | null {
+  const familyId = getEventFamilyId(event);
+  const causeKey = event.causeKey ?? getEventCauseKey(state, familyId);
+  const previous = [...state.eventLog].reverse().find((entry) =>
+    entry.type === 'event'
+      && (entry.familyId ?? entry.id) === familyId
+      && entry.causeKey === causeKey,
+  );
+
+  if (!previous) return { ...event, familyId, causeKey };
+
+  const age = turn - previous.turn;
+  if (age < 72) return null;
+
+  const recurrenceCount = state.eventLog.filter((entry) =>
+    entry.type === 'event'
+      && (entry.familyId ?? entry.id) === familyId
+      && entry.causeKey === causeKey,
+  ).length + 1;
+
+  return {
+    ...event,
+    familyId,
+    causeKey,
+    parentHistoryId: previous.id,
+    title: `Continuidad histórica ${recurrenceCount}: ${event.title}`,
+    description: `${event.description} El episodio reaparece como una continuidad del antecedente registrado en el turno ${previous.turn}; el país ya no lo interpreta como un hecho aislado.`,
+  };
+}
+
+function normalizeHistoricalLogs(logs: LogEntry[], turn: number): LogEntry[] {
+  return logs.map((log, index) => {
+    const familyId = log.familyId ?? log.sourceDecisionId ?? log.title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return {
+      ...log,
+      id: log.id ?? historyId(log.type, familyId, turn, index),
+      familyId,
+      lifecycle: log.lifecycle ?? evolveLifecycle(log.turn, turn),
+    };
+  });
+}
+
 function buildTrialDecision(turn: number): Decision {
   const preview = (gain: string, loss: string) => ({
     gains: [{ icon: '⚖️', label: gain, magnitude: 'fuerte' as const }],
@@ -78,6 +138,8 @@ function buildTrialDecision(turn: number): Decision {
 
   return {
     id: `trial-${turn}`,
+    familyId: 'political-trial',
+    causeKey: 'institutional-risk',
     title: 'JUICIO POLÍTICO: EL EXPEDIENTE LLEGÓ A TU PUERTA',
     description: 'Una combinación de contratos opacos, instituciones debilitadas y decisiones difíciles activó un proceso político. La causa es una ficción del juego: ahora tenés que demostrar tu inocencia, alegar falta de mérito o asumir una condena que puede terminar tu carrera.',
     source: 'Comisión de Juicio Político',
@@ -123,6 +185,30 @@ function applyEffects(
   }
 
   return { nation, character, reputation: applyReputationChanges(current.reputation, effects.reputation) };
+}
+
+function updateSectorTrustMemory(
+  current: GameState['sectorTrustMemory'],
+  effects: Effects,
+): GameState['sectorTrustMemory'] {
+  const next = { ...current };
+  const reputation = effects.reputation ?? {};
+  const mappings: Array<[keyof typeof reputation, keyof typeof next]> = [
+    ['campo', 'campo'],
+    ['empresarios', 'empresarios'],
+    ['trabajadores', 'sindicatos'],
+    ['universidades', 'universidades'],
+    ['jovenes', 'cientificos'],
+    ['mercados', 'internacional'],
+    ['inversores', 'internacional'],
+    ['fuerzas-seguridad', 'militar'],
+    ['ongs', 'ambiental'],
+  ];
+  for (const [source, target] of mappings) {
+    const delta = reputation[source];
+    if (typeof delta === 'number') next[target] = clamp(next[target] + delta, 100);
+  }
+  return next;
 }
 
 function countryPressure(state: Pick<GameState, 'nation' | 'character' | 'reputation'>): number {
@@ -479,6 +565,9 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
     activeEvents: [],
     eventLog: [
       {
+        id: 'history-system-start-1-0',
+        familyId: 'mandate-start',
+        lifecycle: 'nacimiento',
         turn: 1,
         type: 'system',
         title: 'Año 2032 — Inicio de carrera política',
@@ -520,25 +609,37 @@ export function advanceTurn(state: GameState): GameState {
   // 2. Procesar Efectos Diferidos (Bombas de tiempo)
   const remainingDelayed: DelayedEffect[] = [];
 
-  for (const delayed of state.activeDelayedEffects) {
+  for (const [delayedIndex, delayed] of state.activeDelayedEffects.entries()) {
+    const delayedId = delayed.id ?? historyId('delayed', delayed.familyId ?? delayed.sourceDecisionId, delayed.originTurn, delayedIndex);
     const elapsed = nextTurn - delayed.originTurn;
     if (elapsed >= delayed.turnsDelay) {
-      if (chance(rng, delayed.probability)) {
-        newLogs.push({
-          turn: nextTurn,
-          type: 'event',
-          title: '💣 Consecuencia diferida de tu decisión',
-          description: delayed.description,
-          emotionalText: 'Las decisiones pasadas nunca mueren; solo esperaban en silencio el momento de estallar.',
-        });
+      const manifested = chance(rng, delayed.probability);
+      newLogs.push({
+        id: delayedId,
+        familyId: delayed.familyId ?? delayed.sourceDecisionId,
+        parentId: delayed.parentHistoryId,
+        sourceDecisionId: delayed.sourceDecisionId,
+        sourceChoiceId: delayed.sourceChoiceId,
+        lifecycle: manifested ? 'expansion' : 'consumido',
+        turn: nextTurn,
+        type: 'event',
+        title: manifested ? '💣 Consecuencia diferida de tu decisión' : '💣 Consecuencia diferida que no llegó a materializarse',
+        description: manifested
+          ? delayed.description
+          : `La consecuencia prevista no se materializó: ${delayed.description}`,
+        emotionalText: manifested
+          ? 'Las decisiones pasadas nunca mueren; solo esperaban en silencio el momento de estallar.'
+          : 'La historia también conserva las consecuencias que estuvieron a punto de ocurrir.',
+      });
 
+      if (manifested) {
         const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, delayed.effects);
         currentNation = updated.nation;
         currentReputation = updated.reputation;
         currentCharacter = updated.character;
       }
     } else {
-      remainingDelayed.push(delayed);
+      remainingDelayed.push({ ...delayed, id: delayedId });
     }
   }
 
@@ -638,6 +739,10 @@ export function advanceTurn(state: GameState): GameState {
   if (newScar) {
     nextScars.push(newScar);
     newLogs.push({
+      id: newScar.historyId ?? newScar.id,
+      familyId: newScar.familyId ?? newScar.id,
+      parentId: newScar.parentHistoryId,
+      lifecycle: newScar.lifecycle ?? 'nacimiento',
       turn: nextTurn,
       type: 'event',
       title: `⚡ Cicatriz nacional: ${newScar.title}`,
@@ -646,7 +751,9 @@ export function advanceTurn(state: GameState): GameState {
     });
   }
 
-  const legalRisk = state.phase !== 'trial' && state.phase !== 'gameover' && nextTurn > 10
+  const legalRisk = state.phase !== 'trial' && state.phase !== 'gameover'
+    && !state.flags['trial-acquitted'] && !state.flags['trial-dismissed'] && !state.flags['trial-convicted']
+    && nextTurn > 10
     && (currentNation.governance.corruption >= 88
       || currentNation.governance.institutionality <= 16
       || (currentNation.society.socialConflicts >= 90 && currentCharacter.popularity <= 15));
@@ -669,19 +776,27 @@ export function advanceTurn(state: GameState): GameState {
     || (nextCalendar.month === 1 && nextCalendar.fortnight === 1);
   const reserveOverflow = currentNation.economy.reserves >= 98;
   if (!trialDecision && (chance(rng, 0.4) || seasonalMoment || reserveOverflow)) {
-    const sysEvent = generateSystemicEvent({ ...state, turn: nextTurn, calendar: nextCalendar, nation: currentNation }, state.seed + nextTurn);
-    activeEvents.push(sysEvent);
-    const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent.effects);
-    currentNation = updated.nation;
-    currentReputation = updated.reputation;
-    currentCharacter = updated.character;
-    contextualDecision = generateContextualDecision({ ...state, turn: nextTurn, calendar: nextCalendar, nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent, state.seed + nextTurn);
-    newLogs.push({
-      turn: nextTurn,
-      type: 'event',
-      title: sysEvent.title,
-      description: sysEvent.description,
-    });
+    const eventContext = { ...state, turn: nextTurn, calendar: nextCalendar, nation: currentNation, scars: nextScars };
+    const generatedEvent = generateSystemicEvent(eventContext, state.seed + nextTurn);
+    const sysEvent = prepareSystemicEvent(eventContext, generatedEvent, nextTurn);
+    if (sysEvent) {
+      activeEvents.push(sysEvent);
+      const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent.effects);
+      currentNation = updated.nation;
+      currentReputation = updated.reputation;
+      contextualDecision = generateContextualDecision({ ...eventContext, nation: currentNation, reputation: currentReputation, character: currentCharacter }, sysEvent, state.seed + nextTurn);
+      newLogs.push({
+        id: sysEvent.id,
+        familyId: sysEvent.familyId,
+        parentId: sysEvent.parentHistoryId,
+        causeKey: sysEvent.causeKey,
+        lifecycle: 'nacimiento',
+        turn: nextTurn,
+        type: 'event',
+        title: sysEvent.title,
+        description: sysEvent.description,
+      });
+    }
   }
 
   // 6. Generar Titulares y Archivar Edición Impresa en la Hemeroteca
@@ -694,7 +809,7 @@ export function advanceTurn(state: GameState): GameState {
     character: currentCharacter,
     reputation: currentReputation,
     actors: currentActors,
-    eventLog: [...state.eventLog, ...newLogs].slice(-200),
+    eventLog: [...state.eventLog, ...newLogs],
     scars: nextScars,
   };
   const dailyHeadlines = generateDailyHeadlines(nextStateForHeadlines, rng);
@@ -706,7 +821,7 @@ export function advanceTurn(state: GameState): GameState {
     || contextualDecision !== null
     || nextScars.length > state.scars.length
     || annualReport !== null;
-  const updatedHemeroteca = hasMemorableMoment ? [newIssue, ...state.hemeroteca].slice(0, 120) : state.hemeroteca;
+  const updatedHemeroteca = hasMemorableMoment ? [newIssue, ...state.hemeroteca] : state.hemeroteca;
 
   // 7. Actualizar Patrones de Jugador
   const updatedPatterns = {
@@ -724,11 +839,14 @@ export function advanceTurn(state: GameState): GameState {
     ? 1
     : pressure >= 70 ? 6 : pressure >= 48 ? 3 : pressure >= 27 ? 1 : (contextualDecision ? 1 : (nextTurn % 6 === 0 ? 1 : 0));
   const capacity = Math.max(0, desiredPending - existingPending.length);
-  const context = contextualDecision && !existingPending.some((decision) => decision.id === contextualDecision!.id)
+  const context = contextualDecision && !existingPending.some((decision) =>
+    getDecisionFamilyId(decision) === getDecisionFamilyId(contextualDecision!)
+      && decision.causeKey === contextualDecision!.causeKey,
+  )
     ? [contextualDecision]
     : [];
   const newPicks = [...context, ...shuffledEligible]
-    .filter((d) => !existingPending.some((ep) => ep.id === d.id))
+    .filter((d) => !existingPending.some((ep) => getDecisionFamilyId(ep) === getDecisionFamilyId(d) && ep.causeKey === d.causeKey))
     .slice(0, capacity);
 
   const nextPendingDecisions = trialDecision ? [trialDecision] : [...existingPending, ...newPicks];
@@ -740,13 +858,20 @@ export function advanceTurn(state: GameState): GameState {
     persistentConsequences: state.persistentConsequences ?? [],
     worldState: updatedWorld,
   };
-  const { updatedConsequences, emergentLogs, butterflyLog } = evaluatePersistentConsequences(stateForConsequences);
+  const { updatedConsequences, emergentLogs, butterflyLog, activatedConsequences } = evaluatePersistentConsequences(stateForConsequences);
+  for (const consequence of activatedConsequences) {
+    const updated = applyEffects({ nation: currentNation, reputation: currentReputation, character: currentCharacter }, consequence.effects);
+    currentNation = updated.nation;
+    currentReputation = updated.reputation;
+    currentCharacter = updated.character;
+  }
   const allNewLogs: LogEntry[] = [
     ...newLogs,
     ...(worldLog ? [worldLog] : []),
     ...emergentLogs,
     ...(butterflyLog ? [butterflyLog] : []),
   ];
+  const historicalLogs = normalizeHistoricalLogs(allNewLogs, nextTurn);
 
   return {
     ...state,
@@ -777,7 +902,7 @@ export function advanceTurn(state: GameState): GameState {
     },
     activeDelayedEffects: remainingDelayed,
     activeEvents,
-    eventLog: [...state.eventLog, ...allNewLogs].slice(-200),
+    eventLog: [...state.eventLog, ...historicalLogs],
     patterns: updatedPatterns,
     updatedAt: Date.now(),
   };
@@ -810,7 +935,7 @@ export function advanceMandate(state: GameState): GameState {
   return {
     ...current,
     deskObjects: buildDeskObjects(current.pendingDecisions, current.turn, current.dailyHeadlines, report),
-    eventLog: [...current.eventLog, reportLog].slice(-200),
+    eventLog: [...current.eventLog, reportLog],
     updatedAt: Date.now(),
   };
 }
@@ -820,9 +945,16 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   if (!choice) return state;
 
   const updated = applyEffects(state, choice.effects);
+  const familyId = getDecisionFamilyId(decision);
+  const causeKey = decision.causeKey ?? getDecisionCauseKey(decision, state);
+  const decisionHistoryId = historyId('decision', familyId, state.turn, state.decisionHistory.length);
 
-  const newDelayed = choice.delayedEffects.map((de) => ({
+  const newDelayed = choice.delayedEffects.map((de, delayedIndex) => ({
     ...de,
+    id: de.id ?? historyId('delayed', de.familyId ?? familyId, state.turn, delayedIndex),
+    familyId: de.familyId ?? familyId,
+    sourceChoiceId: choiceId,
+    parentHistoryId: decisionHistoryId,
     originTurn: state.turn,
   }));
 
@@ -854,6 +986,12 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     : null;
 
   const logEntry: LogEntry = {
+    id: decisionHistoryId,
+    familyId,
+    sourceDecisionId: decision.id,
+    sourceChoiceId: choiceId,
+    causeKey,
+    lifecycle: 'nacimiento',
     turn: state.turn,
     type: 'decision',
     title: decision.title,
@@ -861,6 +999,12 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     emotionalText: choice.emotionalImpact ?? `Elegiste la opción "${choice.label}". El país absorbe el costo.`,
   };
   const resolutionLog: LogEntry | null = trialResolution ? {
+    id: historyId('trial-resolution', familyId, state.turn),
+    familyId,
+    parentId: decisionHistoryId,
+    sourceDecisionId: decision.id,
+    sourceChoiceId: choiceId,
+    lifecycle: 'resuelto',
     turn: state.turn,
     type: 'system',
     title: trialResolution.title,
@@ -912,6 +1056,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     phase: nextPhase,
     nation: updated.nation,
     reputation: updated.reputation,
+    sectorTrustMemory: updateSectorTrustMemory(state.sectorTrustMemory, choice.effects),
     character: trialConviction ? { ...updated.character, stress: 100, popularity: 0 } : updated.character,
     actors,
     patterns: updatedPatterns,
@@ -923,9 +1068,17 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     pendingDecisions: remainingPending,
     deskObjects: buildDeskObjects(remainingPending, state.turn, state.dailyHeadlines),
     activeDelayedEffects: [...state.activeDelayedEffects, ...newDelayed],
-    decisionHistory: [...state.decisionHistory, { id: decision.id, turn: state.turn, choiceId }],
+    decisionHistory: [...state.decisionHistory, {
+      id: decision.id,
+      familyId,
+      turn: state.turn,
+      choiceId,
+      causeKey,
+      historyId: decisionHistoryId,
+      parentHistoryId: decision.parentHistoryId,
+    }],
     dailyHeadlines: trialHeadline ? [trialHeadline, ...state.dailyHeadlines].slice(0, 12) : state.dailyHeadlines,
-    eventLog: [...state.eventLog, logEntry, ...(resolutionLog ? [resolutionLog] : [])].slice(-200),
+    eventLog: [...state.eventLog, logEntry, ...(resolutionLog ? [resolutionLog] : [])],
     updatedAt: Date.now(),
   };
 }
