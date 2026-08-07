@@ -154,6 +154,22 @@ const NATIONAL_LIFE_EVENTS: Array<{
     effects: { national: { economy: { investment: -4, gdp: -2 }, governance: { institutionality: -5 }, society: { trust: -8, socialConflicts: 6 } }, reputation: { 'clase-media': -7, prensa: -4 } },
   },
   {
+    id: 'rail-derailment',
+    category: 'social',
+    when: (state) => state.turn > 18 && state.turn % 27 === 0,
+    title: 'Descarrilamiento en el corredor ferroviario del centro',
+    description: 'Una formación de carga descarrila por una falla de mantenimiento. No hay una explicación única: la empresa culpa a la señalización y la auditoría encuentra advertencias archivadas.',
+    effects: { national: { economy: { gdp: -2, investment: -3 }, governance: { institutionality: -4 }, society: { trust: -5, socialConflicts: 4 } }, reputation: { trabajadores: -5, prensa: -5 } },
+  },
+  {
+    id: 'civic-center-attack',
+    category: 'politico',
+    when: (state) => state.turn > 24 && state.turn % 53 === 0,
+    title: 'Ataque contra un centro cívico deja al país en alerta',
+    description: 'Una explosión en un edificio público provoca víctimas y conmoción nacional. El origen sigue bajo investigación; el gobierno debe proteger a la población sin convertir el dolor en excusa para saltarse la ley.',
+    effects: { national: { governance: { institutionality: -3 }, society: { trust: -8, socialConflicts: 7, health: -2 } }, reputation: { prensa: 4, 'clase-media': -6 } },
+  },
+  {
     id: 'blackout-winter',
     category: 'ambiental',
     when: (state) => state.calendar.season === 'Invierno' && state.nation.economy.reserves < 40 && state.turn % 7 === 0,
@@ -473,7 +489,7 @@ function applyNarrativeVariant(decision: Decision, familyId: string, state: Game
   return {
     ...decision,
     title,
-    description: `${decision.description} Esta familia ya ocurrió ${occurrenceCount} vez${occurrenceCount === 1 ? '' : 'es'}; el expediente vuelve con una manifestación distinta y conserva ese antecedente.`,
+    description: `${decision.description} El país conserva el antecedente de esta historia; las condiciones cambiaron y por eso vuelve con otra manifestación.`,
   };
 }
 

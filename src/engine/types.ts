@@ -712,6 +712,8 @@ export interface GameState {
   seed: number;
   turn: number;
   phase: GamePhase;
+  /** Ventana breve de investigación tras entregar los archivos del juicio. */
+  trialProcessingUntilTurn?: number;
   calendar: CalendarState;
   dailyHeadlines: HeadlineItem[];
   hemeroteca: HeadlineIssue[]; // Memoria total del país

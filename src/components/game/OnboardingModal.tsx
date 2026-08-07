@@ -9,6 +9,14 @@ export interface OnboardingModalProps {
 
 const LORE_PAGES = [
   {
+    title: '⚠️ Aviso de ficción y propósito',
+    content: `Mi Mandato es una obra de ficción interactiva, sin fines de lucro, creada como búsqueda artística y experimental.
+
+El país, las instituciones, los personajes y los hechos son ficticios. Cualquier semejanza con personas o acontecimientos reales es incidental. Esta obra no constituye información, denuncia ni asesoramiento legal.
+
+El creador no asume responsabilidad por interpretaciones, usos o consecuencias ajenas a la experiencia artística. Las ayudas voluntarias solo buscan sostener el proyecto y no cambian su carácter no comercial.`,
+  },
+  {
     title: '🌎 Año 2029 — El Colapso',
     content: `La República Argentina dejó de existir tal como la conocíamos.
 

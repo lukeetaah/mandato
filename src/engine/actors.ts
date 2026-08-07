@@ -235,12 +235,20 @@ export function advanceActorWorld(actors: Actor[], turn: number, seed: number): 
     const memoryPressure = recentMemory && turn - recentMemory.turn <= 4 ? recentMemory.sentiment * 0.2 : 0;
     const ambitionPush = actor.ambition > 75 ? 1 : actor.ambition < 35 ? -1 : 0;
     const disposition = Math.max(-100, Math.min(100, actor.disposition + Math.round(memoryPressure)));
+    const loyalty = Math.max(0, Math.min(100, actor.loyalty + (disposition > 35 ? 1 : disposition < -35 ? -1 : 0)));
+
+    // Actualizar alineación de objetivos según lealtad y disposición
+    const updatedObjectives = actor.objectives.map((obj) => ({
+      ...obj,
+      alignsWithPlayer: loyalty >= 50 || disposition >= 10,
+    }));
 
     return {
       ...actor,
       disposition,
-      loyalty: Math.max(0, Math.min(100, actor.loyalty + (disposition > 35 ? 1 : disposition < -35 ? -1 : 0))),
+      loyalty,
       influence: Math.max(0, Math.min(100, actor.influence + pulse + ambitionPush)),
+      objectives: updatedObjectives,
       memory: actor.memory.map((memory, memoryIndex) => ({
         ...memory,
         decayed: memoryIndex > 2 || turn - memory.turn > 8,
@@ -248,3 +256,4 @@ export function advanceActorWorld(actors: Actor[], turn: number, seed: number): 
     };
   });
 }
+

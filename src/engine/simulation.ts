@@ -31,6 +31,7 @@ import {
   evaluatePersistentConsequences,
 } from './scars';
 import { generateContextualDecision, generateSystemicEvent, getEventFamilyId, getNarrativeCauseKey as getEventCauseKey } from './event-generator';
+import { evaluateCorruptionScandals } from './corruption';
 
 const SEASONS: Array<'Verano' | 'Otoño' | 'Invierno' | 'Primavera'> = ['Verano', 'Otoño', 'Invierno', 'Primavera'];
 
@@ -148,7 +149,7 @@ function buildTrialDecision(turn: number): Decision {
     familyId: 'political-trial',
     causeKey: 'institutional-risk',
     title: 'JUICIO POLÍTICO: EL EXPEDIENTE LLEGÓ A TU PUERTA',
-    description: 'Una combinación de contratos opacos, instituciones debilitadas y decisiones difíciles activó un proceso político. La causa es una ficción del juego: ahora tenés que demostrar tu inocencia, alegar falta de mérito o asumir una condena que puede terminar tu carrera.',
+    description: 'Una combinación de contratos opacos, instituciones debilitadas y decisiones difíciles activó un proceso político ficticio. Podés entregar los archivos para que la investigación avance, alegar falta de mérito y aceptar el apartamiento, o asumir una condena que termina tu carrera.',
     source: 'Comisión de Juicio Político',
     urgency: 'critica',
     category: 'politico',
@@ -156,8 +157,8 @@ function buildTrialDecision(turn: number): Decision {
     cooldown: 0,
     requirements: [],
     choices: [
-      { id: 'trial-inocencia', label: 'Probar tu inocencia con documentos y auditorías', description: 'Abrís los archivos, citás funcionarios y aceptás que el proceso revise cada decisión. Si los papeles resisten, todavía podés recuperar autoridad.', preview: preview('Defensa institucional', 'Exposición pública'), effects: { national: { governance: { institutionality: 6, corruption: -5 } }, reputation: { prensa: 5, 'clase-media': 4 }, character: { popularity: 4, stress: 8 } }, delayedEffects: [], emotionalImpact: 'La verdad no siempre gana rápido, pero por lo menos deja un expediente que se puede leer.' },
-      { id: 'trial-merito', label: 'Alegar falta de mérito y negociar una salida', description: 'No admitís responsabilidad y buscás que la causa se archive por falta de pruebas suficientes. Conservás parte del poder, aunque muchos lo leerán como una fuga elegante.', preview: preview('Sobrevivir políticamente', 'Confianza pública'), effects: { national: { governance: { institutionality: 2 } }, reputation: { prensa: -3, 'clase-media': -4, mercados: 2 }, character: { popularity: -5, pragmatismo: 5 } }, delayedEffects: [], emotionalImpact: 'En política, una absolución técnica puede sonar menos heroica que una verdad a los gritos.' },
+      { id: 'trial-inocencia', label: 'Entregar los archivos y permitir la investigación', description: 'Abrís contratos, auditorías y comunicaciones. Durante unos turnos quedás procesado y apartado del mando mientras el vicepresidente administra el país y la prensa sigue cada documento.', preview: preview('Verdad institucional', 'Procesamiento público'), effects: { national: { governance: { institutionality: 6, corruption: -5 } }, reputation: { prensa: 5, 'clase-media': 4 }, character: { popularity: 4, stress: 8 } }, delayedEffects: [], emotionalImpact: 'La verdad no te devuelve el cargo: deja un expediente que otros deberán terminar de leer.' },
+      { id: 'trial-merito', label: 'Alegar falta de mérito y aceptar el apartamiento', description: 'Pedís que la causa se archive por falta de pruebas suficientes. El vicepresidente toma el control y tu carrera electoral termina, aunque el país conserve la discusión abierta.', preview: preview('Cierre procesal', 'Fin de la carrera'), effects: { national: { governance: { institutionality: 2 } }, reputation: { prensa: -3, 'clase-media': -4, mercados: 2 }, character: { popularity: -5, pragmatismo: 5 } }, delayedEffects: [], emotionalImpact: 'La falta de mérito no es una vuelta al poder: es una salida del despacho.' },
       { id: 'trial-condena', label: 'No interferir y asumir la condena', description: 'Rechazás presionar testigos o trabar el proceso. La justicia política te aparta del cargo y la historia te deja una celda, una biblioteca o ambas cosas.', preview: preview('Cierre institucional', 'Fin de la carrera'), effects: { national: { governance: { institutionality: 4, corruption: 4 } }, reputation: { prensa: 3, 'clase-media': -8 }, character: { popularity: -20, stress: 15 } }, delayedEffects: [], emotionalImpact: 'El poder se termina de golpe; el expediente, en cambio, queda abierto durante décadas.' },
     ],
   };
@@ -612,6 +613,20 @@ export function advanceTurn(state: GameState): GameState {
   const newLogs: LogEntry[] = [];
   const nextScars = dedupeNationalScars(state.scars);
   const nextElections = [...state.electionsHistory];
+  const trialProcessingDue = state.trialProcessingUntilTurn !== undefined && nextTurn >= state.trialProcessingUntilTurn;
+  if (trialProcessingDue) {
+    nextPhase = 'gameover';
+    currentCharacter = { ...currentCharacter, career: 'expresidente' };
+    newLogs.push({
+      id: historyId('trial-closure', 'political-trial', nextTurn),
+      familyId: 'political-trial',
+      lifecycle: 'resuelto',
+      turn: nextTurn,
+      type: 'event',
+      title: 'FALLO FINAL: EL VICEPRESIDENTE ASUME EL CONTROL DEL PAÍS',
+      description: 'La investigación terminó sin elementos suficientes para sostener la acusación. Fuiste apartado de la presidencia y no podés volver a presentarte; el vicepresidente completa el mandato mientras vos solo podés observar el cierre de la gestión.',
+    });
+  }
 
   // 2. Procesar Efectos Diferidos (Bombas de tiempo)
   const remainingDelayed: DelayedEffect[] = [];
@@ -759,7 +774,7 @@ export function advanceTurn(state: GameState): GameState {
   }
 
   const legalRisk = state.phase !== 'trial' && state.phase !== 'gameover'
-    && !state.flags['trial-acquitted'] && !state.flags['trial-dismissed'] && !state.flags['trial-convicted']
+    && !state.flags['trial-processing'] && !state.flags['trial-acquitted'] && !state.flags['trial-dismissed'] && !state.flags['trial-convicted']
     && nextTurn > 10
     && (currentNation.governance.corruption >= 88
       || currentNation.governance.institutionality <= 16
@@ -883,7 +898,7 @@ export function advanceTurn(state: GameState): GameState {
   ];
   const historicalLogs = normalizeHistoricalLogs(allNewLogs, nextTurn);
 
-  return {
+  const turnResultState: GameState = {
     ...state,
     phase: nextPhase,
     turn: nextTurn,
@@ -904,6 +919,11 @@ export function advanceTurn(state: GameState): GameState {
       yearsInPolitics: currentCharacter.yearsInPolitics + (nextTurn % 12 === 0 ? 1 : 0),
     },
     actors: currentActors,
+    flags: {
+      ...state.flags,
+      ...(trialProcessingDue ? { 'trial-processing': false, 'trial-dismissed': true } : {}),
+    },
+    trialProcessingUntilTurn: trialProcessingDue ? undefined : state.trialProcessingUntilTurn,
     pendingDecisions: nextPendingDecisions,
     deskObjects: buildDeskObjects(nextPendingDecisions, nextTurn, dailyHeadlines),
     deskProps: {
@@ -916,6 +936,8 @@ export function advanceTurn(state: GameState): GameState {
     patterns: updatedPatterns,
     updatedAt: Date.now(),
   };
+
+  return evaluateCorruptionScandals(turnResultState);
 }
 
 /**
@@ -971,20 +993,24 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   const remainingPending = state.pendingDecisions.filter((d) => d.id !== decision.id);
   const isTrialDecision = decision.id.startsWith('trial-');
   const trialConviction = isTrialDecision && choiceId === 'trial-condena';
-  const nextPhase: GameState['phase'] = isTrialDecision ? (trialConviction ? 'gameover' : 'playing') : state.phase;
+  const trialDismissed = isTrialDecision && choiceId === 'trial-merito';
+  const trialProcessing = isTrialDecision && choiceId === 'trial-inocencia';
+  const nextPhase: GameState['phase'] = isTrialDecision
+    ? (trialConviction || trialDismissed ? 'gameover' : trialProcessing ? 'opposition' : 'playing')
+    : state.phase;
   const trialResolution = isTrialDecision
     ? choiceId === 'trial-inocencia'
       ? {
-        flag: 'trial-acquitted',
-        title: 'Juicio político: absolución tras abrir los archivos',
-        description: 'La defensa exhibió contratos, auditorías y órdenes de servicio. La comisión no encontró una responsabilidad suficiente para sostener la acusación y cerró el expediente, aunque varias decisiones quedaron bajo observación pública.',
-        emotionalText: 'Te vas absuelto, no ileso: cada firma queda como una cicatriz de la gestión.',
+        flag: 'trial-processing',
+        title: 'Juicio político: presidente procesado y apartado durante la investigación',
+        description: 'La defensa entregó contratos, auditorías y órdenes de servicio. La investigación sigue abierta; el vicepresidente toma el control provisional del país y la prensa publica cada avance del expediente.',
+        emotionalText: 'Entregar la verdad no conserva el cargo: solo evita que el expediente desaparezca.',
       }
       : choiceId === 'trial-merito'
       ? {
         flag: 'trial-dismissed',
         title: 'Juicio político: causa archivada por falta de mérito',
-        description: 'La acusación no logró probar una responsabilidad directa y la causa fue archivada. El mandato continúa, pero la oposición conserva la carpeta y la confianza institucional queda más frágil.',
+        description: 'La acusación no logró probar una responsabilidad directa y la causa fue archivada. Fuiste apartado, el vicepresidente tomó el control del país y no podés volver a presentarte.',
         emotionalText: 'La falta de mérito no es una ovación: es una puerta que se cierra sin que nadie deje de mirar la cerradura.',
       }
       : {
@@ -1027,7 +1053,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     title: trialResolution.title.toUpperCase(),
     subhead: trialResolution.description,
     category: 'politico',
-    bias: trialResolution.flag === 'trial-acquitted' ? 'oficialista' : 'opositor',
+    bias: trialResolution.flag === 'trial-processing' ? 'opositor' : 'oficialista',
   } : null;
 
   const actionKey = `${decision.id} ${choice.id}`.toLowerCase();
@@ -1067,13 +1093,17 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     nation: updated.nation,
     reputation: updated.reputation,
     sectorTrustMemory: updateSectorTrustMemory(state.sectorTrustMemory, choice.effects),
-    character: trialConviction ? { ...updated.character, stress: 100, popularity: 0 } : updated.character,
+    character: isTrialDecision
+      ? { ...updated.character, career: 'expresidente', ...(trialConviction ? { stress: 100, popularity: 0 } : {}) }
+      : updated.character,
     actors,
     patterns: updatedPatterns,
     flags: {
       ...state.flags,
       ...(choice.flags ?? []).reduce<Record<string, boolean>>((flags, flag) => ({ ...flags, [flag]: true }), {}),
       ...(trialResolution ? { [trialResolution.flag]: true } : {}),
+      ...(trialProcessing ? { 'trial-processing': true } : {}),
+      ...(trialDismissed || trialConviction ? { 'trial-processing': false } : {}),
     },
     pendingDecisions: remainingPending,
     deskObjects: buildDeskObjects(remainingPending, state.turn, state.dailyHeadlines),
@@ -1090,5 +1120,6 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     dailyHeadlines: trialHeadline ? [trialHeadline, ...state.dailyHeadlines].slice(0, 12) : state.dailyHeadlines,
     eventLog: [...state.eventLog, logEntry, ...(resolutionLog ? [resolutionLog] : [])],
     updatedAt: Date.now(),
+    ...(trialProcessing ? { trialProcessingUntilTurn: state.turn + 4 } : {}),
   };
 }

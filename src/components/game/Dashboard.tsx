@@ -8,6 +8,7 @@ import { DecisionQueueRibbon } from './DecisionQueueRibbon';
 
 export const Dashboard: React.FC = () => {
   const gameState = useGameStore((s) => s.gameState);
+  const [showGuide, setShowGuide] = useState(false);
 
   if (!gameState) return null;
 
@@ -20,6 +21,52 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center bg-slate-900/80 p-3 px-4 rounded-xl border border-slate-800 font-sans">
+        <span className="text-xs text-slate-300 font-medium">
+          📊 Tablero de Control de la República
+        </span>
+        <button
+          onClick={() => setShowGuide(!showGuide)}
+          className="text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <span>❓</span> {showGuide ? 'Ocultar Guía de Métricas' : '¿Qué significan estos indicadores?'}
+        </button>
+      </div>
+
+      {showGuide && (
+        <div className="glass-panel p-5 rounded-2xl border border-amber-500/40 text-xs space-y-3 font-sans animate-fadeIn">
+          <h4 className="font-extrabold text-amber-300 text-sm border-b border-amber-500/20 pb-2">
+            📘 GUÍA RÁPIDA DE INDICADORES NACIONALES
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1">
+              <span className="font-bold text-emerald-400">💵 Reservas del Banco Central</span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Financian importaciones de combustibles, insumos industriales y medicinas. Si caen por debajo del 20%, el país enfrenta peligro de corrida cambiaria y desabastecimiento.
+              </p>
+            </div>
+            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1">
+              <span className="font-bold text-rose-400">🔥 Inflación Anual</span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Ritmo de aumento de precios. Al superar el 50%, incrementa la pobreza y desgasta la popularidad presidencial rápidamente.
+              </p>
+            </div>
+            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1">
+              <span className="font-bold text-sky-400">🏛️ Institucionalidad</span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Mide el respeto por la separación de poderes, fallos de la Corte Suprema y normas democráticas. Atrae inversión extranjera.
+              </p>
+            </div>
+            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-1">
+              <span className="font-bold text-gold-400">💼 Corrupción Percibida</span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Nivel de opacidad en licitaciones y favores políticos. Al superar 60%, abre investigaciones periodísticas y riesgo de Juicio Político.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DecisionQueueRibbon />
       {/* Indicadores visibles antes del escritorio presidencial */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
