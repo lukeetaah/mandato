@@ -10,7 +10,7 @@ export interface PressNewsRoomProps {
 }
 
 export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
-  const [activeTab, setActiveTab] = useState<'diario' | 'noticiero' | 'impacto'>('diario');
+  const [activeTab, setActiveTab] = useState<'diario' | 'noticiero' | 'impacto' | 'redes'>('diario');
   const [page, setPage] = useState(0);
   const [showHemeroteca, setShowHemeroteca] = useState(false);
 
@@ -72,6 +72,16 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
             <span>📺</span> Noticiero TV 24hs
           </button>
           <button
+            onClick={() => setActiveTab('redes')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'redes'
+                ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            <span>📲</span> Redes y Tendencias
+          </button>
+          <button
             onClick={() => setActiveTab('impacto')}
             className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'impacto'
@@ -79,7 +89,7 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            <span>⚖️</span> Impacto Moral y Repercusiones
+            <span>⚖️</span> Impacto Moral
           </button>
         </div>
 
@@ -351,13 +361,13 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
             ) : (
               <div className="space-y-4">
                 {recentDecisionLogs.map((log, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                  <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 font-sans">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-sky-400">Turno {log.turn}</span>
                       <Badge variant="gold">Decisión ejecutada</Badge>
                     </div>
-                    <h4 className="font-bold text-slate-100 text-sm">{log.title}</h4>
-                    <p className="text-xs text-amber-200 italic bg-amber-950/40 p-3 rounded-lg border border-amber-500/30 font-medium">
+                    <h4 className="font-bold text-slate-100 text-sm font-serif">{log.title}</h4>
+                    <p className="text-xs text-amber-200 italic bg-amber-950/40 p-3 rounded-lg border border-amber-500/30 font-serif">
                       💬 "{log.emotionalText ?? log.description}"
                     </p>
                   </div>
@@ -365,6 +375,111 @@ export const PressNewsRoom: React.FC<PressNewsRoomProps> = ({ gameState }) => {
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* ─── TAB 4: REDES SOCIALES Y TENDENCIAS ─── */}
+      {activeTab === 'redes' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans text-xs">
+          {/* Columna 1 & 2: Feed de publicaciones */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-400 font-extrabold">🌐 X-SUR FEED EN VIVO</span>
+                <span className="text-[10px] text-slate-500">• Reacciones de la ciudadanía</span>
+              </div>
+              <Badge variant={gameState.character.popularity > 50 ? 'emerald' : 'rose'}>
+                {gameState.character.popularity > 50 ? 'TRENDING FAVORABLE' : 'TENDENCIA ADVERSA'}
+              </Badge>
+            </div>
+
+            {/* Posts generados dinámicamente */}
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 font-black flex items-center justify-center text-xs">EC</div>
+                    <div>
+                      <div className="font-extrabold text-slate-100 text-xs">El Ciudadano K</div>
+                      <div className="text-[10px] text-slate-400">@ciudadano_sur</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500">Hace 15m</span>
+                </div>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  {gameState.nation.economy.inflation > 55
+                    ? 'Ir al supermercado se convirtió en un deporte extremo. Los precios cambian en la fila de la caja. ¿Alguien en la Casa de Gobierno registra esto? #InflacionFueraDeControl'
+                    : 'La calma de precios se siente en el barrio. Ojalá dure y no sea solo un espejismo electoral. #EstabilidadSur'}
+                </p>
+                <div className="flex gap-6 text-[10px] text-slate-400 pt-2 border-t border-slate-800/60 font-semibold">
+                  <span>💬 412</span> <span>🔁 1.2k</span> <span>❤️ 4.8k</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black flex items-center justify-center text-xs">MO</div>
+                    <div>
+                      <div className="font-extrabold text-slate-100 text-xs">Mercados & Finanzas</div>
+                      <div className="text-[10px] text-slate-400">@mercados_ok</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500">Hace 1h</span>
+                </div>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  {gameState.nation.economy.reserves < 25
+                    ? '⚠️ Alerta en la City: las reservas del Banco Central cayeron a niveles críticos. Los analistas prevén tensión en el dólar paralelo. #AlertaReservas'
+                    : '📈 Clima positivo en los bonos sovereign. Los inversores destacan la disciplina de las reservas internacionales. #RiesgoPais'}
+                </p>
+                <div className="flex gap-6 text-[10px] text-slate-400 pt-2 border-t border-slate-800/60 font-semibold">
+                  <span>💬 189</span> <span>🔁 890</span> <span>❤️ 2.3k</span>
+                </div>
+              </div>
+
+              {gameState.nation.governance.corruption > 50 && (
+                <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/60 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-black flex items-center justify-center text-xs">PI</div>
+                      <div>
+                        <div className="font-extrabold text-rose-200 text-xs">Prensa Independiente</div>
+                        <div className="text-[10px] text-rose-400/80">@prensa_libre</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-rose-400/70">Hace 2h</span>
+                  </div>
+                  <p className="text-rose-100 text-xs leading-relaxed">
+                    🚨 BOMBA: Crece la indignación social por sospechas de opacidad en contrataciones del Ejecutivo. Exigen explicaciones urgentes. #CarpetasAbiertas
+                  </p>
+                  <div className="flex gap-6 text-[10px] text-rose-300/80 pt-2 border-t border-rose-900/60 font-semibold">
+                    <span>💬 1.5k</span> <span>🔁 4.2k</span> <span>❤️ 8.9k</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Columna 3: Tendencias & Hashtags */}
+          <div className="space-y-4">
+            <Card title="🔥 Tendencias Nacionales" subtitle="Lo más comentado en la República">
+              <div className="space-y-3 font-sans">
+                {[
+                  { tag: '#MiMandato', count: '145K publicaciones', category: 'Política' },
+                  { tag: gameState.nation.economy.inflation > 50 ? '#InflacionRecord' : '#PreciosEstables', count: '98K publicaciones', category: 'Economía' },
+                  { tag: gameState.character.popularity < 40 ? '#CacerolazoNacional' : '#RespaldoPresidencial', count: '64K publicaciones', category: 'Sociedad' },
+                  { tag: '#CorteSuprema', count: '32K publicaciones', category: 'Instituciones' },
+                  { tag: '#LitioSur', count: '18K publicaciones', category: 'Recursos' },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-0.5">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">{item.category}</span>
+                    <div className="font-extrabold text-amber-300 text-xs">{item.tag}</div>
+                    <span className="text-[10px] text-slate-400 block">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ interface GameStore {
   makeChoice: (decision: Decision, choiceId: string) => void;
   saveCurrentGame: () => void;
   resetGame: () => void;
+  updateGameState: (updater: (prev: GameState) => GameState) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -62,5 +63,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   resetGame: () => {
     deleteSave();
     set({ gameState: null, hasSaveAvailable: false });
+  },
+
+  updateGameState: (updater) => {
+    const current = get().gameState;
+    if (!current) return;
+    const updated = updater(current);
+    saveGame(updated);
+    set({ gameState: updated });
   },
 }));

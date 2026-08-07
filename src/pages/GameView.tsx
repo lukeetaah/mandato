@@ -88,42 +88,116 @@ export const GameView: React.FC = () => {
       )}
 
       {activeTab === 'personaje' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <Card title="Perfil y vida privada" subtitle="Tu vivienda y bienes personales">
-            <div className="space-y-4 text-xs">
-              <div>
-                <span className="text-slate-400 font-semibold block mb-1">Vivienda actual:</span>
-                <Badge variant="gold">{HOUSING_LABELS[character.housing] ?? character.housing}</Badge>
-                <p className="text-slate-300 italic text-[11px] mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800 leading-relaxed font-serif">
-                  "{HOUSING_SATIRE[character.housing] ?? 'Vivienda institucional de la República.'}"
-                </p>
-              </div>
-
-              <div>
-                <span className="text-slate-400 font-semibold block mb-1">Perfil detectado por la prensa:</span>
-                <Badge variant="sky">{patterns.detectedProfile.toUpperCase()}</Badge>
-              </div>
-
-              <div>
-                <span className="text-slate-400 font-semibold block mb-1">Patrimonio estimado:</span>
-                <span className="font-bold text-emerald-400 text-sm">{character.wealth} pts</span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800">
-                <span className="text-slate-400 font-semibold block mb-1">Biografía política:</span>
-                <p className="text-slate-300 italic text-[11px]">{character.backstory}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Reputación por grupo" subtitle="Opinión pública segmentada">
-            <div className="space-y-2 text-xs">
-              {Object.entries(reputation).map(([groupKey, value]) => (
-                <div key={groupKey} className="flex justify-between items-center border-b border-slate-800/60 pb-1">
-                  <span className="text-slate-300">{REPUTATION_LABELS[groupKey as keyof typeof REPUTATION_LABELS] ?? groupKey}:</span>
-                  <span className={`font-bold ${value >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{value}%</span>
+        <div className="space-y-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card title="Perfil y vida privada" subtitle="Tu vivienda y bienes personales">
+              <div className="space-y-4 text-xs">
+                <div>
+                  <span className="text-slate-400 font-semibold block mb-1">Vivienda actual:</span>
+                  <Badge variant="gold">{HOUSING_LABELS[character.housing] ?? character.housing}</Badge>
+                  <p className="text-slate-300 italic text-[11px] mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800 leading-relaxed font-serif">
+                    "{HOUSING_SATIRE[character.housing] ?? 'Vivienda institucional de la República.'}"
+                  </p>
                 </div>
-              ))}
+
+                <div>
+                  <span className="text-slate-400 font-semibold block mb-1">Perfil detectado por la prensa:</span>
+                  <Badge variant="sky">{patterns.detectedProfile.toUpperCase()}</Badge>
+                </div>
+
+                <div>
+                  <span className="text-slate-400 font-semibold block mb-1">Patrimonio personal oculto/público:</span>
+                  <span className="font-bold text-emerald-400 text-sm">{character.wealth} pts</span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                  <span className="text-slate-400 font-semibold block mb-1">Biografía política:</span>
+                  <p className="text-slate-300 italic text-[11px]">{character.backstory}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Reputación por grupo" subtitle="Opinión pública segmentada">
+              <div className="space-y-2 text-xs">
+                {Object.entries(reputation).map(([groupKey, value]) => (
+                  <div key={groupKey} className="flex justify-between items-center border-b border-slate-800/60 pb-1">
+                    <span className="text-slate-300">{REPUTATION_LABELS[groupKey as keyof typeof REPUTATION_LABELS] ?? groupKey}:</span>
+                    <span className={`font-bold ${value >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{value}%</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* 💼 Operaciones Secretas & Caja Política */}
+          <Card
+            title="💼 Operaciones Secretas & Caja Política"
+            subtitle="Acciones discrecionales del Poder Ejecutivo (Alto Riesgo)"
+            className="border-purple-500/30"
+          >
+            <div className="space-y-3 text-xs">
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Como Presidente podés influir discrecionalmente en los poderes del Estado y construir tu patrimonio personal. Cada acción eleva el nivel de opacidad y el riesgo de carpetazo mediático o Juicio Político.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    useGameStore.getState().updateGameState((prev) => ({
+                      ...prev,
+                      reputation: { ...prev.reputation, prensa: Math.min(100, prev.reputation.prensa + 8) },
+                      nation: {
+                        ...prev.nation,
+                        governance: { ...prev.nation.governance, corruption: Math.min(100, prev.nation.governance.corruption + 3) },
+                      },
+                    }));
+                  }}
+                  className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all cursor-pointer space-y-1"
+                >
+                  <div className="font-extrabold text-amber-300 text-xs">📢 Pauta a medios amigos</div>
+                  <div className="text-[10px] text-slate-400">+8 Reputación en Prensa</div>
+                  <div className="text-[10px] text-rose-400 font-bold">+3 Corrupción percibida</div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    useGameStore.getState().updateGameState((prev) => ({
+                      ...prev,
+                      character: { ...prev.character, wealth: prev.character.wealth + 15 },
+                      nation: {
+                        ...prev.nation,
+                        governance: { ...prev.nation.governance, corruption: Math.min(100, prev.nation.governance.corruption + 4) },
+                      },
+                    }));
+                  }}
+                  className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all cursor-pointer space-y-1"
+                >
+                  <div className="font-extrabold text-emerald-300 text-xs">🏦 Giro a caja offshore</div>
+                  <div className="text-[10px] text-slate-400">+15 Patrimonio personal</div>
+                  <div className="text-[10px] text-rose-400 font-bold">+4 Corrupción percibida</div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    useGameStore.getState().updateGameState((prev) => ({
+                      ...prev,
+                      nation: {
+                        ...prev.nation,
+                        governance: {
+                          ...prev.nation.governance,
+                          institutionality: Math.max(0, prev.nation.governance.institutionality - 5),
+                          corruption: Math.max(0, prev.nation.governance.corruption - 2),
+                        },
+                      },
+                    }));
+                  }}
+                  className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all cursor-pointer space-y-1"
+                >
+                  <div className="font-extrabold text-sky-300 text-xs">⚖️ Presión sobre fiscales</div>
+                  <div className="text-[10px] text-slate-400">-2 Corrupción expuesta</div>
+                  <div className="text-[10px] text-rose-400 font-bold">-5 Institucionalidad</div>
+                </button>
+              </div>
             </div>
           </Card>
         </div>

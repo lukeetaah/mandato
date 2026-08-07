@@ -62,6 +62,24 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
             >
               <div className="flex justify-between items-start mb-2">
                 <h4 className="font-bold text-slate-100 text-sm">{choice.label}</h4>
+                {(() => {
+                  const hasStrongRisk = choice.preview.risks.some(r => r.magnitude === 'fuerte');
+                  const hasBomb = choice.delayedEffects.length > 0;
+                  const highProbBomb = choice.delayedEffects.some(e => e.probability >= 0.5);
+
+                  let badge = { label: '🟢 BAJO RIESGO', color: 'bg-emerald-950/80 text-emerald-300 border-emerald-600/60' };
+                  if (hasStrongRisk || (hasBomb && highProbBomb)) {
+                    badge = { label: '💥 RIESGO CRÍTICO', color: 'bg-rose-950/80 text-rose-300 border-rose-600/60 font-black animate-pulse' };
+                  } else if (choice.preview.risks.length > 0 || hasBomb) {
+                    badge = { label: '🟡 RIESGO MODERADO', color: 'bg-amber-950/80 text-amber-300 border-amber-600/60' };
+                  }
+
+                  return (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-xs text-slate-400 mb-3">{choice.description}</p>
 
