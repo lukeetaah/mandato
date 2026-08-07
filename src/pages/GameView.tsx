@@ -46,12 +46,12 @@ export const GameView: React.FC = () => {
           <Dashboard />
           <PresidentialDesk gameState={gameState} />
           {pendingDecisions.length > 0 && (
-            <div className="space-y-4 pt-4 border-t border-[#30363D]">
+            <div id="asuntos-urgentes" className="space-y-4 pt-4 border-t border-slate-300 dark:border-[#30363D] scroll-mt-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 font-sans">
+                <h3 className="text-xl font-black text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2 font-sans">
                   <span>⚖️</span> Asuntos Urgentes de Estado ({pendingDecisions.length} pendiente{pendingDecisions.length === 1 ? '' : 's'})
                 </h3>
-                <span className="text-xs text-amber-400 font-bold bg-amber-950/40 px-3 py-1 rounded-xl border border-amber-500/30">
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-100 dark:bg-amber-950/40 px-3 py-1 rounded-2xl border border-amber-300 dark:border-amber-500/30">
                   Resolución requerida
                 </span>
               </div>

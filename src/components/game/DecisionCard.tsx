@@ -4,6 +4,7 @@ import { Card } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
 import { Badge } from '@components/ui/Badge';
 import { useGameStore } from '@stores/game-store';
+import { useUIStore } from '@stores/ui-store';
 
 export interface DecisionCardProps {
   decision: Decision;
@@ -12,6 +13,9 @@ export interface DecisionCardProps {
 
 export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecisionMade }) => {
   const makeChoice = useGameStore((s) => s.makeChoice);
+  const theme = useUIStore((s) => s.theme);
+  const isLight = theme === 'light';
+
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -43,9 +47,9 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
       title={decision.title}
       subtitle={`Presentado por: ${decision.source}`}
       action={<Badge variant={urgencyColors[decision.urgency]}>{decision.urgency.toUpperCase()}</Badge>}
-      className="mb-4 border-sky-500/20"
+      className="mb-4"
     >
-      <p className="text-slate-300 text-sm mb-5 leading-relaxed">{decision.description}</p>
+      <p className={`text-sm mb-5 leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{decision.description}</p>
 
       <div className="space-y-3">
         {decision.choices.map((choice) => {
@@ -54,66 +58,70 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
           return (
             <div
               key={choice.id}
-              className={`p-4 rounded-xl transition-all border ${choice.disabled ? 'opacity-60 border-slate-700 bg-slate-950/70' : ''} ${
+              className={`p-4 rounded-2xl transition-all border ${choice.disabled ? 'opacity-60 border-slate-300 bg-slate-100' : ''} ${
                 isSelected
-                  ? 'bg-sky-950/80 border-sky-400/60 shadow-lg shadow-sky-500/10'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-sky-500/30'
+                  ? isLight ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-sky-950/80 border-sky-400/60 shadow-lg shadow-sky-500/10'
+                  : isLight ? 'bg-slate-50 border-slate-200 hover:border-blue-400' : 'bg-slate-900/80 border-slate-800 hover:border-sky-500/30'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
-                <h4 className="font-bold text-slate-100 text-sm">{choice.label}</h4>
+                <h4 className={`font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>{choice.label}</h4>
                 {(() => {
                   const hasStrongRisk = choice.preview.risks.some(r => r.magnitude === 'fuerte');
                   const hasBomb = choice.delayedEffects.length > 0;
                   const highProbBomb = choice.delayedEffects.some(e => e.probability >= 0.5);
 
-                  let badge = { label: '🟢 BAJO RIESGO', color: 'bg-emerald-950/80 text-emerald-300 border-emerald-600/60' };
+                  let badge = { label: '🟢 BAJO RIESGO', color: isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/60' };
                   if (hasStrongRisk || (hasBomb && highProbBomb)) {
-                    badge = { label: '💥 RIESGO CRÍTICO', color: 'bg-rose-950/80 text-rose-300 border-rose-600/60 font-black animate-pulse' };
+                    badge = { label: '💥 RIESGO CRÍTICO', color: isLight ? 'bg-rose-100 text-rose-800 border-rose-300 font-black' : 'bg-rose-950/80 text-rose-300 border-rose-600/60 font-black animate-pulse' };
                   } else if (choice.preview.risks.length > 0 || hasBomb) {
-                    badge = { label: '🟡 RIESGO MODERADO', color: 'bg-amber-950/80 text-amber-300 border-amber-600/60' };
+                    badge = { label: '🟡 RIESGO MODERADO', color: isLight ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-amber-950/80 text-amber-300 border-amber-600/60' };
                   }
 
                   return (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${badge.color}`}>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badge.color}`}>
                       {badge.label}
                     </span>
                   );
                 })()}
               </div>
-              <p className="text-xs text-slate-400 mb-3">{choice.description}</p>
+              <p className={`text-xs mb-3 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{choice.description}</p>
 
               {choice.disabledReason && (
-                <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-700/40 rounded-lg px-2.5 py-2 mb-3">
+                <p className={`text-[11px] rounded-xl px-3 py-2 mb-3 border ${
+                  isLight ? 'text-amber-900 bg-amber-50 border-amber-200' : 'text-amber-300/90 bg-amber-950/40 border-amber-700/40'
+                }`}>
                   ☐ {choice.disabledReason}
                 </p>
               )}
 
               {/* Previsualización */}
-              <div className="grid grid-cols-3 gap-2 text-[11px] mb-3 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
+              <div className={`grid grid-cols-3 gap-2 text-[11px] mb-3 p-3 rounded-xl border ${
+                isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800'
+              }`}>
                 <div>
-                  <span className="text-emerald-400 font-semibold block mb-1">Ganancias</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold block mb-1">Ganancias</span>
                   {choice.preview.gains.length > 0 ? choice.preview.gains.map((g, idx) => (
-                    <span key={idx} className="block text-slate-300">
+                    <span key={idx} className={`block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                       {g.icon} {g.label}
                     </span>
-                  )) : <span className="text-slate-600">—</span>}
+                  )) : <span className="text-slate-400">—</span>}
                 </div>
                 <div>
-                  <span className="text-rose-400 font-semibold block mb-1">Pérdidas</span>
+                  <span className="text-rose-500 font-semibold block mb-1">Pérdidas</span>
                   {choice.preview.losses.length > 0 ? choice.preview.losses.map((l, idx) => (
-                    <span key={idx} className="block text-slate-300">
+                    <span key={idx} className={`block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                       {l.icon} {l.label}
                     </span>
-                  )) : <span className="text-slate-600">—</span>}
+                  )) : <span className="text-slate-400">—</span>}
                 </div>
                 <div>
-                  <span className="text-amber-400 font-semibold block mb-1">Riesgos</span>
+                  <span className="text-amber-500 font-semibold block mb-1">Riesgos</span>
                   {choice.preview.risks.length > 0 ? choice.preview.risks.map((r, idx) => (
-                    <span key={idx} className="block text-slate-300">
+                    <span key={idx} className={`block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                       {r.icon} {r.label}
                     </span>
-                  )) : <span className="text-slate-600">—</span>}
+                  )) : <span className="text-slate-400">—</span>}
                 </div>
               </div>
 
