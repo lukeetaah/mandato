@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '@stores/game-store';
+import { useUIStore } from '@stores/ui-store';
 import { CAREER_LABELS } from '@engine/constants';
 import { Badge } from '@components/ui/Badge';
 import { Modal } from '@components/ui/Modal';
@@ -14,6 +15,7 @@ export const Header: React.FC = () => {
   const gameState = useGameStore((s) => s.gameState);
   const saveCurrentGame = useGameStore((s) => s.saveCurrentGame);
   const resetGame = useGameStore((s) => s.resetGame);
+  const { theme, toggleTheme } = useUIStore();
 
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [saveNotification, setSaveNotification] = useState(false);
@@ -42,29 +44,29 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="bg-[#161B22] border-b border-[#30363D] z-20 shadow-md">
+      <header className={`${theme === 'light' ? 'bg-white border-slate-200 text-slate-900 shadow-sm' : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC]'} border-b z-20 transition-colors`}>
         <div className="min-h-16 px-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <h1 className="text-xl font-black tracking-tight text-[#F8FAFC] flex items-center gap-2">
+          <h1 className={`text-xl font-black tracking-tight flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
             <span className="text-[#3B82F6]">🏛️</span> MI MANDATO
           </h1>
           <div className="hidden sm:flex items-center gap-2 text-xs">
             <Badge variant="slate">📅 {monthName} {calendar.year}</Badge>
             <Badge variant="gold">{calendar.season}</Badge>
-            <span className="text-[#94A3B8] font-medium">Turno {turn}</span>
+            <span className={theme === 'light' ? 'text-slate-500 font-medium' : 'text-[#94A3B8] font-medium'}>Turno {turn}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-5 text-xs shrink-0 font-sans">
+        <div className="flex items-center gap-4 text-xs shrink-0 font-sans">
           <div className="hidden md:flex items-center gap-2">
-            <span className="font-bold text-[#F8FAFC]">{character.name} {character.surname}</span>
+            <span className={`font-bold ${theme === 'light' ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{character.name} {character.surname}</span>
             <Badge variant="sky">{CAREER_LABELS[character.career]}</Badge>
           </div>
           <div className="flex items-center gap-4 font-bold">
-            <span className={character.health < 40 ? 'text-[#EF4444]' : 'text-rose-400'}>
+            <span className={character.health < 40 ? 'text-[#EF4444]' : 'text-rose-500'}>
               ❤️ {Math.round(character.health)}
             </span>
-            <span className={character.stress > 70 ? 'text-[#F59E0B]' : 'text-amber-300'}>
+            <span className={character.stress > 70 ? 'text-[#F59E0B]' : 'text-amber-500'}>
               ⚡ {Math.round(character.stress)}
             </span>
             <span className={character.popularity < 30 ? 'text-[#EF4444]' : 'text-[#22C55E]'}>
@@ -72,13 +74,31 @@ export const Header: React.FC = () => {
             </span>
           </div>
 
+          {/* Botón Solcito / Lunita */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2.5 rounded-2xl border text-sm transition-all cursor-pointer shadow-sm ${
+              theme === 'light'
+                ? 'bg-amber-100/80 border-amber-300 text-amber-900 hover:bg-amber-200'
+                : 'bg-[#1E293B] border-[#475569] text-amber-300 hover:bg-[#334155]'
+            }`}
+            title={theme === 'light' ? 'Cambiar a Modo Oscuro 🌙' : 'Cambiar a Modo Claro ☀️'}
+            aria-label="Cambiar tema de color"
+          >
+            {theme === 'light' ? '☀️' : '🌙'}
+          </button>
+
           <button
             onClick={() => setIsOptionsOpen(true)}
-            className="ml-2 px-4 py-2 bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#F8FAFC] font-extrabold rounded-2xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className={`px-4 py-2 border font-extrabold rounded-2xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm ${
+              theme === 'light'
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-900'
+                : 'bg-[#1E293B] hover:bg-[#334155] border-[#475569] text-[#F8FAFC]'
+            }`}
             title="Opciones de partida y guardado"
           >
             <span>⚙️</span>
-            <span className="hidden sm:inline">Menú / Salir</span>
+            <span className="hidden sm:inline">Menú</span>
           </button>
         </div>
         </div>

@@ -898,7 +898,38 @@ export function advanceTurn(state: GameState): GameState {
   ];
   const historicalLogs = normalizeHistoricalLogs(allNewLogs, nextTurn);
 
-  const turnResultState: GameState = {
+    // Evaluar crisis de estrés y salud del Presidente
+    let finalHealth = currentCharacter.health;
+    let finalStress = clamp(currentCharacter.stress + (pressure >= 48 ? 2 : 1));
+
+    if (finalStress >= 80 && chance(rng, 0.35)) {
+      historicalLogs.push({
+        id: historyId('stress-episode', 'health-crisis', nextTurn),
+        familyId: 'health-crisis',
+        turn: nextTurn,
+        type: 'event',
+        title: '💔 CRISIS DE SALUD PRESIDENCIAL: AGOTAMIENTO EXTREMO',
+        description: 'El estrés acumulado provocó un cuadro de hipertensión y desorientación durante una conferencia oficial. Médicos recomiendan reposo absoluto.',
+        emotionalText: '«El país no frena, pero el cuerpo del Presidente exige un límite que la política se niega a conceder.»',
+      });
+      finalHealth = clamp(finalHealth - 8);
+      currentCharacter.popularity = clamp(currentCharacter.popularity - 4);
+    }
+
+    if (finalHealth <= 0 || finalStress >= 100) {
+      nextPhase = 'gameover';
+      historicalLogs.push({
+        id: historyId('health-collapse', 'health-crisis', nextTurn),
+        familyId: 'health-crisis',
+        turn: nextTurn,
+        type: 'event',
+        title: '🏥 TRAGEDIA NACIONAL: COLAPSO MÉDICO DEL PRESIDENTE',
+        description: 'El estado de salud del mandatario sufrió un deterioro irreversible. El Vicepresidente asume la titularidad del Poder Ejecutivo en un clima de duelo y conmoción nacional.',
+        emotionalText: 'La bandera ondea a media asta en la Casa de Gobierno.',
+      });
+    }
+
+    const turnResultState: GameState = {
     ...state,
     phase: nextPhase,
     turn: nextTurn,
@@ -915,7 +946,8 @@ export function advanceTurn(state: GameState): GameState {
     reputation: currentReputation,
     character: {
       ...currentCharacter,
-      stress: clamp(currentCharacter.stress + (pressure >= 48 ? 2 : 1)),
+      health: finalHealth,
+      stress: finalStress,
       yearsInPolitics: currentCharacter.yearsInPolitics + (nextTurn % 12 === 0 ? 1 : 0),
     },
     actors: currentActors,

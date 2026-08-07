@@ -45,25 +45,17 @@ export const GameView: React.FC = () => {
         <div className="space-y-6 max-w-6xl mx-auto">
           <Dashboard />
           <PresidentialDesk gameState={gameState} />
-        </div>
-      )}
-
-      {activeTab === 'decisiones' && (
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-slate-100 mb-6">Decisiones pendientes</h2>
-          {pendingDecisions.length === 0 ? (
-            <Card className="text-center py-12">
-              <p className="text-slate-400">No hay decisiones urgentes pendientes en este turno.</p>
-              <p className="text-xs text-slate-500 mt-2">Avanzá la quincena para continuar la simulación.</p>
-            </Card>
-          ) : (
-            <div className="space-y-4">
+          {pendingDecisions.length > 0 && (
+            <div className="space-y-4 pt-4 border-t border-[#30363D]">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 font-sans">
+                  <span>⚖️</span> Asuntos Urgentes de Estado ({pendingDecisions.length} pendiente{pendingDecisions.length === 1 ? '' : 's'})
+                </h3>
+                <span className="text-xs text-amber-400 font-bold bg-amber-950/40 px-3 py-1 rounded-xl border border-amber-500/30">
+                  Resolución requerida
+                </span>
+              </div>
               <DecisionCard key={pendingDecisions[0]!.id} decision={pendingDecisions[0]!} />
-              {pendingDecisions.length > 1 && (
-                <p className="text-sm text-slate-400 text-center">
-                  Resolvé esta situación para ver la siguiente.
-                </p>
-              )}
             </div>
           )}
         </div>
