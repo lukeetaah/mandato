@@ -2,43 +2,45 @@
 
 @layer base {
   :root {
-    --bg-main: #0a1628;
-    --bg-card: rgba(17, 29, 46, 0.85);
-    --border-card: rgba(255, 255, 255, 0.08);
-    --accent-sky: #74b9ff;
-    --accent-gold: #f9ca24;
-    --danger-red: #e74c3c;
-    --success-green: #00b894;
+    --bg-main: #0D1117;
+    --bg-panel: #161B22;
+    --bg-card: #1E293B;
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --accent-green: #22C55E;
+    --accent-red: #EF4444;
+    --accent-yellow: #F59E0B;
+    --accent-blue: #3B82F6;
   }
 
   body {
-    background-color: var(--bg-main);
-    color: #f8fafc;
-    font-family: 'Inter', sans-serif;
+    background-color: #0D1117;
+    color: #F8FAFC;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
     margin: 0;
     padding: 0;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    color: #F8FAFC;
   }
 }
 
-/* Glassmorphism utilities */
+/* Custom panels and cards with 16px borders and high contrast */
 .glass-panel {
-  background: rgba(17, 29, 46, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background-color: #161B22;
+  border: 1px solid #30363D;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
 .glass-panel-gold {
-  background: rgba(25, 27, 18, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(249, 202, 36, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(249, 202, 36, 0.1);
+  background-color: #1E293B;
+  border: 1px solid #F59E0B;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.15);
 }
 
 /* Custom scrollbars */
@@ -48,16 +50,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(10, 22, 40, 0.5);
+  background: #0D1117;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: #30363D;
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(116, 185, 255, 0.4);
+  background: #3B82F6;
 }
 
 @keyframes miMandatoHeadlineMarquee {

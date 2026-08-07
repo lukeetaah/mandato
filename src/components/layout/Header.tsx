@@ -42,40 +42,39 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="glass-panel border-b border-slate-800 z-20">
-        <div className="min-h-14 px-6 flex items-center justify-between gap-4">
+      <header className="bg-[#161B22] border-b border-[#30363D] z-20 shadow-md">
+        <div className="min-h-16 px-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <h1 className="text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-amber-300 to-sky-200">
-            MI MANDATO
+          <h1 className="text-xl font-black tracking-tight text-[#F8FAFC] flex items-center gap-2">
+            <span className="text-[#3B82F6]">🏛️</span> MI MANDATO
           </h1>
           <div className="hidden sm:flex items-center gap-2 text-xs">
             <Badge variant="slate">📅 {monthName} {calendar.year}</Badge>
             <Badge variant="gold">{calendar.season}</Badge>
-            <span className="text-slate-500">Turno {turn}</span>
+            <span className="text-[#94A3B8] font-medium">Turno {turn}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs shrink-0">
+        <div className="flex items-center gap-5 text-xs shrink-0 font-sans">
           <div className="hidden md:flex items-center gap-2">
-            <span className="font-bold text-slate-100">{character.name} {character.surname}</span>
+            <span className="font-bold text-[#F8FAFC]">{character.name} {character.surname}</span>
             <Badge variant="sky">{CAREER_LABELS[character.career]}</Badge>
           </div>
-          <div className="flex items-center gap-3 font-semibold">
-            <span className={character.health < 40 ? 'text-rose-400' : 'text-rose-300'}>
+          <div className="flex items-center gap-4 font-bold">
+            <span className={character.health < 40 ? 'text-[#EF4444]' : 'text-rose-400'}>
               ❤️ {Math.round(character.health)}
             </span>
-            <span className={character.stress > 70 ? 'text-amber-400' : 'text-amber-300'}>
+            <span className={character.stress > 70 ? 'text-[#F59E0B]' : 'text-amber-300'}>
               ⚡ {Math.round(character.stress)}
             </span>
-            <span className={character.popularity < 30 ? 'text-emerald-400' : 'text-emerald-300'}>
-              ⭐ {Math.round(character.popularity)}
+            <span className={character.popularity < 30 ? 'text-[#EF4444]' : 'text-[#22C55E]'}>
+              ⭐ {Math.round(character.popularity)}%
             </span>
           </div>
 
-          {/* Botón de control del juego estilo Corpority */}
           <button
             onClick={() => setIsOptionsOpen(true)}
-            className="ml-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+            className="ml-2 px-4 py-2 bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#F8FAFC] font-extrabold rounded-2xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm"
             title="Opciones de partida y guardado"
           >
             <span>⚙️</span>

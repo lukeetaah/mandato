@@ -22,13 +22,13 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       {/* ─── DESKTOP SIDEBAR ─── */}
-      <aside className={`hidden md:flex ${sidebarCollapsed ? 'w-[4.5rem]' : 'w-64'} shrink-0 glass-panel border-r border-slate-800 p-3 flex-col gap-2 transition-[width] duration-200`}>
+      <aside className={`hidden md:flex ${sidebarCollapsed ? 'w-[4.5rem]' : 'w-64'} shrink-0 bg-[#161B22] border-r border-[#30363D] p-4 flex-col gap-3 transition-[width] duration-200 shadow-lg`}>
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-2`}>
-          {!sidebarCollapsed && <span className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Navegación</span>}
+          {!sidebarCollapsed && <span className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#94A3B8]">Navegación</span>}
           <button
             type="button"
             onClick={toggleSidebar}
-            className="w-9 h-9 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-400 hover:text-slate-100 hover:border-sky-500/40 transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-2xl border border-[#30363D] bg-[#0D1117] text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#3B82F6] transition-colors cursor-pointer flex items-center justify-center font-bold"
             aria-label={sidebarCollapsed ? 'Expandir menú lateral' : 'Minimizar menú lateral'}
             title={sidebarCollapsed ? 'Expandir menú' : 'Minimizar menú'}
           >
@@ -36,7 +36,7 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-1.5 font-sans">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -45,10 +45,10 @@ export const Sidebar: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 aria-label={tab.label}
                 title={sidebarCollapsed ? tab.label : undefined}
-                className={`relative w-full flex items-center justify-between ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} py-3 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                className={`relative w-full flex items-center justify-between ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3.5'} py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-[#1E293B] text-[#3B82F6] border border-[#3B82F6]/50 shadow-md'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B]/60 border border-transparent'
                 }`}
               >
                 <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
@@ -56,7 +56,7 @@ export const Sidebar: React.FC = () => {
                   {!sidebarCollapsed && <span>{tab.label}</span>}
                 </div>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`${sidebarCollapsed ? 'absolute ml-7 -mt-6 min-w-4 px-1' : 'px-2'} bg-amber-400 text-slate-950 text-[10px] font-black py-0.5 rounded-full shadow-sm`}>
+                  <span className={`${sidebarCollapsed ? 'absolute ml-7 -mt-6 min-w-4 px-1' : 'px-2.5'} bg-[#F59E0B] text-[#0D1117] text-[10px] font-black py-0.5 rounded-full shadow-sm`}>
                     {tab.badge}
                   </span>
                 )}
@@ -67,21 +67,21 @@ export const Sidebar: React.FC = () => {
       </aside>
 
       {/* ─── MOBILE BOTTOM BAR ─── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0a1628]/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around px-2 py-2 shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#161B22]/95 backdrop-blur-md border-t border-[#30363D] flex items-center justify-around px-2 py-2 shadow-2xl">
         {mobileTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-medium transition-all ${
-                isActive ? 'text-amber-300 font-bold bg-amber-500/10' : 'text-slate-400 hover:text-slate-200'
+              className={`relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl text-[10px] font-bold transition-all ${
+                isActive ? 'text-[#3B82F6] bg-[#1E293B]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
               <span className="text-lg">{tab.icon}</span>
               <span>{tab.label.split(' ')[0]}</span>
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="absolute top-0 right-1 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                <span className="absolute top-0 right-1 bg-[#F59E0B] text-[#0D1117] text-[9px] font-black px-1.5 py-0.2 rounded-full">
                   {tab.badge}
                 </span>
               )}

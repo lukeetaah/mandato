@@ -29,13 +29,6 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const informationalItems = visibleObjects.filter(obj => !obj.associatedDecisionId);
   const pacingMode = getPacingMode(gameState);
 
-  const timeGradients: Record<string, string> = {
-    mañana: 'from-amber-900/40 via-sky-950/80 to-slate-950',
-    tarde: 'from-sky-900/50 via-slate-950 to-slate-950',
-    atardecer: 'from-amber-950/80 via-rose-950/60 to-slate-950',
-    noche: 'from-slate-950 via-indigo-950/80 to-slate-950',
-  };
-
   const weatherIcons: Record<string, string> = {
     despejado: '☀️',
     lluvia: '🌧️',
@@ -91,58 +84,56 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const fortnight = calendar.fortnight ?? 1;
 
   return (
-    <div className="relative w-full min-h-[560px] md:min-h-[640px] rounded-2xl md:rounded-3xl overflow-hidden border-2 md:border-4 border-[#3e2723] shadow-2xl bg-[#1a0f0a] flex flex-col justify-between font-serif selection:bg-amber-500/30">
-      {/* ─── 1. VENTANAL DEL DESPACHO ─── */}
-      <div className={`relative min-h-44 w-full bg-gradient-to-b ${timeGradients[timeOfDay] ?? timeGradients.mañana} p-4 sm:p-6 flex flex-col gap-4 md:flex-row md:justify-between md:items-start border-b-8 border-[#2d1b16] shadow-inner overflow-hidden`}>
+    <div className="relative w-full min-h-[560px] md:min-h-[640px] rounded-2xl md:rounded-3xl overflow-hidden border border-[#30363D] shadow-2xl bg-[#161B22] flex flex-col justify-between font-sans selection:bg-[#3B82F6]/30">
+      {/* ─── 1. CABECERA DEL DESPACHO ─── */}
+      <div className="relative min-h-36 w-full bg-[#161B22] p-6 flex flex-col gap-4 md:flex-row md:justify-between md:items-start border-b border-[#30363D] shadow-sm">
         {weatherCondition === 'lluvia' && (
-          <div className="absolute inset-0 opacity-30 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
         )}
 
         <div className="z-10 flex flex-col">
-          <span className="text-amber-200/90 text-xs font-black tracking-widest uppercase leading-relaxed font-sans flex items-start gap-2">
+          <span className="text-[#3B82F6] text-xs font-black tracking-widest uppercase leading-relaxed font-sans flex items-center gap-2">
             🏛️ CASA DE GOBIERNO — DESPACHO PRESIDENCIAL
           </span>
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight font-serif mt-1">
+          <h2 className="text-xl font-bold text-[#F8FAFC] tracking-tight font-sans mt-1">
             {fortnight === 1 ? 'Primera quincena' : 'Segunda quincena'} de {calendar.monthCycleName} ({calendar.season} {calendar.year})
           </h2>
           {gameState.phase === 'opposition' && (
-            <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg border border-rose-400/40 bg-rose-950/70 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-rose-200 font-sans">
+            <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-2xl border border-[#EF4444]/40 bg-[#EF4444]/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#EF4444] font-sans">
               Oposición activa · prensa, redes y carpetas también gobiernan
             </span>
           )}
         </div>
 
-        <div className="z-10 self-start md:self-auto w-full md:w-auto flex flex-wrap items-center gap-x-3 gap-y-1 bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-900/40 text-xs text-amber-200 font-sans shadow-lg">
+        <div className="z-10 self-start md:self-auto w-full md:w-auto flex flex-wrap items-center gap-x-3 gap-y-1 bg-[#0D1117] px-4 py-2.5 rounded-2xl border border-[#30363D] text-xs text-[#F8FAFC] font-sans shadow-md font-bold">
           <span>{weatherIcons[weatherCondition] ?? '☀️'} {weatherCondition.toUpperCase()}</span>
-          <span>•</span>
-          <span className="capitalize">{timeOfDay}</span>
-          <span>•</span>
-          <span className="text-sky-300 font-bold">Estrés: {character.stress}%</span>
+          <span className="text-[#94A3B8]">•</span>
+          <span className="capitalize text-[#94A3B8]">{timeOfDay}</span>
+          <span className="text-[#94A3B8]">•</span>
+          <span className="text-[#3B82F6]">Estrés: {character.stress}%</span>
         </div>
       </div>
 
       {/* ─── 2. LA MESA DEL ESCRITORIO ─── */}
-      <div className="relative flex-1 bg-gradient-to-b from-[#2d1b16] via-[#241410] to-[#1a0f0a] p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d7ccc8_1px,transparent_1px)] [background-size:24px_24px]" />
-
-        <div className="flex justify-end items-center z-10 text-xs text-amber-300/70 font-sans mb-4">
-          <div className="flex items-center gap-3">
+      <div className="relative flex-1 bg-[#0D1117] p-6 md:p-8 flex flex-col justify-between overflow-hidden shadow-inner">
+        <div className="flex justify-end items-center z-10 text-xs text-[#94A3B8] font-sans mb-4">
+          <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="block text-[10px] text-amber-400/60 uppercase tracking-wider font-bold">Reservas</span>
-              <span className={`font-bold text-sm ${nation.economy.reserves < 25 ? 'text-rose-400' : 'text-emerald-400'}`}>
+              <span className="block text-[10px] text-[#94A3B8] uppercase tracking-wider font-bold">Reservas Centrales</span>
+              <span className={`font-bold text-sm ${nation.economy.reserves < 25 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
                 {Math.round(nation.economy.reserves)}%
               </span>
             </div>
-            <div className="text-right pl-3 border-l border-amber-900/40">
-              <span className="block text-[10px] text-amber-400/60 uppercase tracking-wider font-bold">Popularidad</span>
-              <span className="font-bold text-sm text-sky-400">{Math.round(character.popularity)}%</span>
+            <div className="text-right pl-4 border-l border-[#30363D]">
+              <span className="block text-[10px] text-[#94A3B8] uppercase tracking-wider font-bold">Popularidad</span>
+              <span className="font-bold text-sm text-[#3B82F6]">{Math.round(character.popularity)}%</span>
             </div>
           </div>
         </div>
 
         {/* ─── OBJETOS FÍSICOS SOBRE EL ESCRITORIO ─── */}
         {visibleObjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 my-auto z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-auto z-10">
             {visibleObjects.map((obj) => {
               const isUrgent = obj.urgency === 'critica' || obj.urgency === 'alta';
               const hasDecision = !!obj.associatedDecisionId;
@@ -151,12 +142,10 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                 <div
                   key={obj.id}
                   onClick={() => { setActiveObject(obj); setSelectedChoiceId(null); }}
-                  className={`p-4 sm:p-5 rounded-2xl cursor-pointer transition-all transform hover:-translate-y-1.5 hover:shadow-2xl border ${
+                  className={`p-5 rounded-2xl cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-xl border ${
                     isUrgent
-                      ? 'bg-rose-950/80 border-rose-500/60 shadow-lg shadow-rose-900/30'
-                      : obj.type === 'diario'
-                      ? 'bg-[#f4ecd8] text-slate-950 border-[#d3c59d] shadow-xl'
-                      : 'bg-[#2a1711] text-amber-100 border-amber-800/60 hover:border-amber-400/60 shadow-lg'
+                      ? 'bg-[#1E293B] border-[#EF4444] text-[#F8FAFC] shadow-red-500/10'
+                      : 'bg-[#1E293B] text-[#F8FAFC] border-[#334155] hover:border-[#3B82F6]'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2 font-sans">
@@ -204,17 +193,17 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
 
         {/* ─── 3. INSPECTOR DE DOCUMENTOS ─── */}
         {activeObject && (
-          <div className="absolute inset-x-2 sm:inset-x-4 md:inset-x-6 top-2 sm:top-4 md:top-6 bottom-2 sm:bottom-4 md:bottom-6 z-30 bg-[#f7f1df] text-slate-950 p-4 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl border-4 md:border-8 border-[#4e342e] shadow-2xl overflow-y-auto font-serif">
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start border-b-2 border-slate-950 pb-4 mb-6 font-sans">
+          <div className="absolute inset-x-2 sm:inset-x-4 md:inset-x-6 top-2 sm:top-4 md:top-6 bottom-2 sm:bottom-4 md:bottom-6 z-30 bg-[#161B22] text-[#F8FAFC] p-6 sm:p-8 rounded-2xl md:rounded-3xl border border-[#30363D] shadow-2xl overflow-y-auto font-sans">
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start border-b border-[#30363D] pb-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">
                   {activeObject.type === 'diario' ? '🗞️' : activeObject.type === 'telefono' ? '☎️' : activeObject.type === 'carta-gobernador' ? '✉️' : activeObject.type === 'encuesta' ? '📊' : '📁'}
                 </span>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-600">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#3B82F6]">
                     {activeDecision ? 'DOCUMENTO QUE REQUIERE SU DECISIÓN' : 'DOCUMENTO INFORMATIVO'}
                   </span>
-                  <h2 className="text-lg sm:text-xl font-black text-slate-950 leading-tight break-words font-serif">
+                  <h2 className="text-lg sm:text-xl font-black text-[#F8FAFC] leading-tight break-words">
                     {activeObject.title}
                   </h2>
                 </div>
@@ -222,28 +211,28 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
               {activeDecision ? (
                 <button
                   onClick={() => { setActiveObject(null); setSelectedChoiceId(null); }}
-                  className="w-full sm:w-auto shrink-0 px-4 py-2 text-xs font-bold rounded-xl border-2 border-slate-400 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
+                  className="w-full sm:w-auto shrink-0 px-4 py-2 text-xs font-bold rounded-2xl border border-[#475569] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B] transition-all cursor-pointer"
                 >
                   ← Volver a la mesa
                 </button>
               ) : (
                 <button
                   onClick={() => handleDismissReadOnly(activeObject.id)}
-                  className="w-full sm:w-auto shrink-0 px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 text-white border-2 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer shadow-md"
+                  className="w-full sm:w-auto shrink-0 px-4 py-2 text-xs font-bold rounded-2xl bg-[#3B82F6] text-[#F8FAFC] border border-[#2563EB] hover:bg-[#2563EB] transition-all cursor-pointer shadow-md"
                 >
                   ✕ Cerrar y archivar
                 </button>
               )}
             </div>
 
-            <div className="space-y-6 text-sm text-slate-900 leading-relaxed font-serif">
-              <p className="text-base leading-relaxed bg-[#ede3c6] p-5 rounded-2xl border border-slate-400/60 font-serif italic">
+            <div className="space-y-6 text-sm text-[#F8FAFC] leading-relaxed">
+              <p className="text-base leading-relaxed bg-[#1E293B] p-5 rounded-2xl border border-[#334155] italic">
                 "{activeObject.inspectText}"
               </p>
 
               {activeDecision ? (
-                <div className="space-y-4 font-sans pt-4 border-t border-slate-300">
-                  <h4 className="font-extrabold text-slate-950 text-sm font-serif">
+                <div className="space-y-4 font-sans pt-4 border-t border-[#30363D]">
+                  <h4 className="font-extrabold text-[#F8FAFC] text-sm">
                     ¿Qué decidís hacer?
                   </h4>
 
@@ -253,31 +242,31 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                     return (
                       <div
                         key={choice.id}
-                        className={`p-4 sm:p-5 rounded-2xl transition-all border ${choice.disabled ? 'opacity-60 border-slate-400/60' : ''} ${
+                        className={`p-5 rounded-2xl transition-all border ${choice.disabled ? 'opacity-60 border-[#334155]' : ''} ${
                           isSelected
-                            ? 'bg-slate-950 text-amber-200 border-slate-950 shadow-xl'
-                            : 'bg-[#ebdcb9] text-slate-900 border-slate-400 hover:border-slate-800 cursor-pointer'
+                            ? 'bg-[#1E293B] text-[#F8FAFC] border-[#3B82F6] shadow-xl'
+                            : 'bg-[#1E293B]/70 text-[#F8FAFC] border-[#334155] hover:border-[#3B82F6] cursor-pointer'
                         }`}
                         onClick={() => !choice.disabled && !isSelected && setSelectedChoiceId(choice.id)}
                       >
                         <h5 className="font-bold text-sm mb-1">{choice.label}</h5>
-                        <p className={`text-xs mb-3 leading-relaxed font-serif ${isSelected ? 'text-amber-300/80' : 'text-slate-700'}`}>
+                        <p className={`text-xs mb-3 leading-relaxed ${isSelected ? 'text-[#F8FAFC]' : 'text-[#94A3B8]'}`}>
                           {choice.description}
                         </p>
                         {choice.disabledReason && (
-                          <p className="text-[11px] text-amber-900 bg-amber-200/60 border border-amber-700/40 rounded-lg px-2.5 py-2 mb-3">
+                          <p className="text-[11px] text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl px-3 py-2 mb-3">
                             ☐ {choice.disabledReason}
                           </p>
                         )}
 
                         <div className="flex flex-wrap gap-4 text-[11px] font-semibold mb-3">
                           {choice.preview.gains.length > 0 && (
-                            <span className={isSelected ? 'text-emerald-300' : 'text-emerald-700'}>
+                            <span className="text-[#22C55E]">
                               👍 {choice.preview.gains.map((g) => g.label).join(', ')}
                             </span>
                           )}
                           {choice.preview.losses.length > 0 && (
-                            <span className={isSelected ? 'text-rose-300' : 'text-rose-700'}>
+                            <span className="text-[#EF4444]">
                               ⚠️ {choice.preview.losses.map((l) => l.label).join(', ')}
                             </span>
                           )}
@@ -299,7 +288,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 italic font-sans">Este documento es informativo. Podés cerrarlo y archivarlo.</p>
+                <p className="text-xs text-[#94A3B8] italic font-sans">Este documento es informativo. Podés cerrarlo y archivarlo.</p>
               )}
             </div>
           </div>
