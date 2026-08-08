@@ -5,7 +5,7 @@ import type { NationalScar, PersistentConsequence } from '@engine/types';
 import { dedupeNationalScars } from '@engine/scars';
 import { Card } from '@components/ui/Card';
 import { StatBar } from '@components/ui/StatBar';
-import { DecisionQueueRibbon } from './DecisionQueueRibbon';
+
 import { SectorDonutChart } from './SectorDonutChart';
 
 export const Dashboard: React.FC = () => {
@@ -92,7 +92,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <DecisionQueueRibbon />
+
 
       {/* Gráfico Donut de Reputación por Sectores (con Asesor Político al hacer click) */}
       <SectorDonutChart reputation={reputation ?? {}} />
