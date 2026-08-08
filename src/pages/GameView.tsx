@@ -266,10 +266,12 @@ export const GameView: React.FC = () => {
 
       {activeTab === 'dashboard' && (
         <div className="space-y-6 max-w-6xl mx-auto">
-          <Dashboard />
+          {/* 1. Escritorio Presidencial Interactivo y Botón Avanzar Quincena al frente */}
           <PresidentialDesk gameState={gameState} />
+
+          {/* 2. Asuntos Urgentes / Decisiones Requeridas */}
           {pendingDecisions.length > 0 && (
-            <div id="asuntos-urgentes" className="space-y-4 pt-4 border-t border-slate-300 dark:border-[#30363D] scroll-mt-6">
+            <div id="asuntos-urgentes" className="space-y-4 pt-2 scroll-mt-6">
               <div className="flex justify-between items-center">
                 <h3 className={`text-xl font-black flex items-center gap-2 font-sans ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
                   <span>⚖️</span> Asuntos urgentes de Estado ({pendingDecisions.length} pendiente{pendingDecisions.length === 1 ? '' : 's'})
@@ -283,6 +285,9 @@ export const GameView: React.FC = () => {
               <DecisionCard key={pendingDecisions[0]!.id} decision={pendingDecisions[0]!} />
             </div>
           )}
+
+          {/* 3. Tablero Secundario: Guía Rápida, Indicadores y Sectores */}
+          <Dashboard />
         </div>
       )}
 

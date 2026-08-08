@@ -2,12 +2,73 @@ import { useState } from 'react';
 import type { GameState, DeskObject } from '@engine/types';
 import { useGameStore } from '@stores/game-store';
 import { useUIStore } from '@stores/ui-store';
-import { Button } from '@components/ui/Button';
+import { Modal } from '@components/ui/Modal';
 import { getPacingMode } from '@engine/simulation';
 
 export interface PresidentialDeskProps {
   gameState: GameState;
 }
+
+// Configuración de hotspots sobre la imagen del escritorio presidencial (estilo point-and-click Origin)
+interface DeskHotspotConfig {
+  type: string;
+  label: string;
+  icon: string;
+  channel: string; // 'telefono' | 'escritorio' | 'prensa' | 'sobre_puerta' | 'gobernadores' | 'inteligencia'
+  position: { top: string; left: string; width: string; height: string };
+  glowColor: string;
+}
+
+const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
+  telefono: {
+    type: 'telefono',
+    label: 'Teléfono rojo presidencial',
+    icon: '📞',
+    channel: 'Llamada directa de emergencia',
+    position: { top: '55%', left: '78%', width: '16%', height: '24%' },
+    glowColor: 'rgba(239, 68, 68, 0.5)',
+  },
+  diario: {
+    type: 'diario',
+    label: 'Prensa y diario del día',
+    icon: '📰',
+    channel: 'Edición matutina de opinión pública',
+    position: { top: '65%', left: '42%', width: '22%', height: '22%' },
+    glowColor: 'rgba(59, 130, 246, 0.5)',
+  },
+  expediente: {
+    type: 'expediente',
+    label: 'Expediente ministerial urgente',
+    icon: '📁',
+    channel: 'Decreto y proyecto en firmas',
+    position: { top: '58%', left: '16%', width: '22%', height: '26%' },
+    glowColor: 'rgba(245, 158, 11, 0.5)',
+  },
+  'carpeta-roja': {
+    type: 'carpeta-roja',
+    label: 'Carpeta roja clasificada',
+    icon: '📕',
+    channel: 'Operación secreta de Estado',
+    position: { top: '48%', left: '5%', width: '18%', height: '22%' },
+    glowColor: 'rgba(225, 29, 72, 0.6)',
+  },
+  'carta-gobernador': {
+    type: 'carta-gobernador',
+    label: 'Correspondencia federal',
+    icon: '✉️',
+    channel: 'Exigencia de provincias y coparticipación',
+    position: { top: '42%', left: '40%', width: '18%', height: '18%' },
+    glowColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  'informe-inteligencia': {
+    type: 'informe-inteligencia',
+    label: 'Informe confidencial AFI',
+    icon: '🕵️',
+    channel: 'Reporte de riesgo e inteligencia',
+    position: { top: '45%', left: '62%', width: '16%', height: '20%' },
+    glowColor: 'rgba(168, 85, 247, 0.5)',
+  },
+};
 
 export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState }) => {
   const nextTurn = useGameStore((s) => s.nextTurn);
@@ -18,6 +79,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const [activeObject, setActiveObject] = useState<DeskObject | null>(null);
   const [dismissedObjects, setDismissedObjects] = useState<Set<string>>(new Set());
   const [showSkipWarning, setShowSkipWarning] = useState(false);
+  const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
 
   const safeDeskObjects = deskObjects ?? [];
   const visibleObjects = safeDeskObjects.filter(obj => {
@@ -25,8 +87,8 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
     if (obj.id.startsWith('desk-report-') && obj.inspectText.includes('No hubo sobresaltos nacionales')) return false;
     return true;
   });
+
   const hasDecisionItems = visibleObjects.some(obj => obj.associatedDecisionId);
-  const informationalItems = visibleObjects.filter(obj => !obj.associatedDecisionId);
   const pacingMode = getPacingMode(gameState);
 
   const weatherIcons: Record<string, string> = {
@@ -46,15 +108,6 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
       }
     }
     setActiveObject(obj);
-  };
-
-  const handleDismissReadOnly = (objId: string) => {
-    setDismissedObjects(prev => {
-      const next = new Set(prev);
-      next.add(objId);
-      return next;
-    });
-    setActiveObject(null);
   };
 
   const handleAdvance = () => {
@@ -77,234 +130,263 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const fortnight = calendar.fortnight ?? 1;
 
   return (
-    <div className={`relative w-full min-h-[560px] md:min-h-[640px] rounded-2xl md:rounded-3xl overflow-hidden border flex flex-col justify-between font-sans transition-colors ${
+    <div className={`relative w-full rounded-2xl md:rounded-3xl overflow-hidden border flex flex-col font-sans transition-all ${
       isLight
-        ? 'bg-white border-slate-200 text-slate-900 shadow-sm'
-        : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC] shadow-2xl selection:bg-[#3B82F6]/30'
+        ? 'bg-white border-slate-200 text-slate-900 shadow-md'
+        : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC] shadow-2xl'
     }`}>
-      {/* ─── 1. CABECERA DEL DESPACHO ─── */}
-      <div className={`relative min-h-36 w-full p-6 flex flex-col gap-4 md:flex-row md:justify-between md:items-start border-b ${
-        isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#161B22] border-[#30363D]'
+      {/* ─── 1. CABECERA Y PLACA DEL PRESIDENTE ─── */}
+      <div className={`p-4 px-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b ${
+        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/90 border-slate-800'
       }`}>
-        {weatherCondition === 'lluvia' && (
-          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#888_1px,transparent_1px)] [background-size:16px_16px]" />
-        )}
-
-        <div className="z-10 flex flex-col">
-          <span className="text-[#3B82F6] text-xs font-black tracking-widest uppercase leading-relaxed font-sans flex items-center gap-2">
-            🏛️ CASA DE GOBIERNO — DESPACHO PRESIDENCIAL
-          </span>
-          <h2 className={`text-xl font-bold tracking-tight font-sans mt-1 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
-            {fortnight === 1 ? 'Primera quincena' : 'Segunda quincena'} de {calendar.monthCycleName} ({calendar.season} {calendar.year})
-          </h2>
-          {gameState.phase === 'opposition' && (
-            <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-2xl border border-[#EF4444]/40 bg-[#EF4444]/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#EF4444] font-sans">
-              Oposición activa · prensa, redes y carpetas también gobiernan
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-black tracking-wide flex items-center gap-2">
+              <span>🏛️</span> Despacho Presidencial — Casa Rosada
+            </h3>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              Sillón de Rivadavia
             </span>
-          )}
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Presidente <b>{character.name} {character.surname}</b> · {fortnight === 1 ? '1ª Quincena' : '2ª Quincena'} de {calendar.monthCycleName} ({calendar.year})
+          </p>
         </div>
 
-        <div className={`z-10 self-start md:self-auto w-full md:w-auto flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 rounded-2xl border text-xs font-sans shadow-sm font-bold ${
-          isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0D1117] border-[#30363D] text-[#F8FAFC]'
-        }`}>
-          <span>{weatherIcons[weatherCondition] ?? '☀️'} {weatherCondition.toUpperCase()}</span>
-          <span className={isLight ? 'text-slate-400' : 'text-[#94A3B8]'}>•</span>
-          <span className={`capitalize ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>{timeOfDay}</span>
-          <span className={isLight ? 'text-slate-400' : 'text-[#94A3B8]'}>•</span>
-          <span className="text-[#3B82F6]">Estrés: {character.stress}%</span>
+        {/* Indicadores rápidos de clima y ritmo */}
+        <div className="flex items-center gap-3 text-xs font-semibold">
+          <span className={`px-3 py-1 rounded-2xl border flex items-center gap-1.5 ${
+            isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-slate-950 border-slate-800 text-slate-300'
+          }`}>
+            <span>{weatherIcons[weatherCondition] ?? '☀️'}</span>
+            <span className="capitalize">{weatherCondition} · {timeOfDay}</span>
+          </span>
+
+          <span className={`px-3 py-1 rounded-2xl border flex items-center gap-1.5 ${
+            nation.economy.reserves >= 50
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+          }`}>
+            <span>🏦</span> Reservas: {Math.round(nation.economy.reserves)}%
+          </span>
         </div>
       </div>
 
-      {/* ─── 2. LA MESA DEL ESCRITORIO ─── */}
-      <div className={`relative flex-1 p-6 md:p-8 flex flex-col justify-between overflow-hidden ${
-        isLight ? 'bg-slate-100/70' : 'bg-[#0D1117]'
-      }`}>
-        <div className={`flex justify-end items-center z-10 text-xs font-sans mb-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <span className={`block text-[10px] uppercase tracking-wider font-bold ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Reservas Centrales</span>
-              <span className={`font-bold text-sm ${nation.economy.reserves < 25 ? 'text-[#EF4444]' : 'text-[#22C55E]'}`}>
-                {Math.round(nation.economy.reserves)}%
-              </span>
+      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN DE CASA ROSADA ─── */}
+      <div className="relative w-full aspect-[16/9] min-h-[380px] max-h-[580px] overflow-hidden bg-slate-950 select-none">
+        {/* Imagen de Fondo del Escritorio */}
+        <img
+          src="/presidential-desk.jpg"
+          alt="Escritorio Presidencial Argentina"
+          className="w-full h-full object-cover object-center filter brightness-[0.9] contrast-[1.05]"
+        />
+
+        {/* Overlay de Sombra y Clima */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
+
+        {/* Efecto de Lluvia si aplica */}
+        {weatherCondition === 'lluvia' && (
+          <div className="absolute inset-0 opacity-25 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] animate-pulse" />
+        )}
+
+        {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES */}
+        {visibleObjects.map((obj) => {
+          const config = HOTSPOT_MAPPING[obj.type] ?? {
+            type: obj.type,
+            label: obj.title,
+            icon: '📄',
+            channel: 'Documento sobre el escritorio',
+            position: { top: '55%', left: '50%', width: '20%', height: '20%' },
+            glowColor: 'rgba(59, 130, 246, 0.5)',
+          };
+
+          const isHovered = hoveredHotspot === obj.id;
+          const hasUrgentDecision = !!obj.associatedDecisionId;
+
+          return (
+            <div
+              key={obj.id}
+              onClick={() => handleObjectClick(obj)}
+              onMouseEnter={() => setHoveredHotspot(obj.id)}
+              onMouseLeave={() => setHoveredHotspot(null)}
+              style={{
+                top: config.position.top,
+                left: config.position.left,
+                width: config.position.width,
+                height: config.position.height,
+              }}
+              className="absolute cursor-pointer transition-all duration-200 group flex items-center justify-center rounded-2xl"
+            >
+              {/* Resplandor / Pulse para destacar objetos interactivos */}
+              <div
+                style={{
+                  boxShadow: isHovered
+                    ? `0 0 25px 8px ${config.glowColor}`
+                    : hasUrgentDecision
+                    ? `0 0 15px 3px ${config.glowColor}`
+                    : 'none',
+                }}
+                className={`absolute inset-0 rounded-2xl border-2 transition-all ${
+                  hasUrgentDecision
+                    ? 'border-amber-400 bg-amber-500/10 animate-pulse'
+                    : isHovered
+                    ? 'border-sky-400 bg-sky-500/20'
+                    : 'border-white/20 bg-black/20 hover:border-white/50'
+                }`}
+              />
+
+              {/* Icono Flotante Badge */}
+              <div className="relative z-10 flex flex-col items-center">
+                <span className="text-3xl md:text-4xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition-transform">
+                  {config.icon}
+                </span>
+
+                {hasUrgentDecision && (
+                  <span className="mt-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white rounded-full shadow-lg animate-bounce">
+                    Requerido
+                  </span>
+                )}
+              </div>
+
+              {/* Tooltip flotante al pasar el mouse (Point-and-Click style) */}
+              {isHovered && (
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none whitespace-nowrap bg-slate-900/95 text-white border border-slate-700 px-3 py-1.5 rounded-xl shadow-2xl text-xs space-y-0.5 text-center">
+                  <div className="font-extrabold flex items-center gap-1.5 justify-center">
+                    <span>{config.icon}</span>
+                    <span>{obj.title}</span>
+                  </div>
+                  <div className="text-[10px] text-amber-300 font-semibold">{config.channel}</div>
+                </div>
+              )}
             </div>
-            <div className={`text-right pl-4 border-l ${isLight ? 'border-slate-300' : 'border-[#30363D]'}`}>
-              <span className={`block text-[10px] uppercase tracking-wider font-bold ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Popularidad</span>
-              <span className="font-bold text-sm text-[#3B82F6]">{Math.round(character.popularity)}%</span>
+          );
+        })}
+
+        {/* Estado Escritorio Limpio (Sin llamadas u objetos pendientes) */}
+        {visibleObjects.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-950/40 backdrop-blur-[2px]">
+            <span className="text-5xl mb-2 opacity-80">☕</span>
+            <h4 className="text-base font-extrabold text-white">El despacho está despejado</h4>
+            <p className="text-xs text-slate-300 max-w-md mt-1 leading-relaxed">
+              No hay asuntos urgentes ni llamadas de emergencia en esta quincena. Podés avanzar al siguiente período constitucional o revisar la coyuntura.
+            </p>
+          </div>
+        )}
+
+        {/* Notificación flotante de canal directo sobre el escritorio */}
+        {visibleObjects.length > 0 && (
+          <div className="absolute bottom-3 left-4 right-4 md:right-auto md:max-w-md z-20 p-2.5 px-4 rounded-2xl bg-slate-900/90 border border-slate-700 text-white text-xs backdrop-blur-md flex items-center justify-between gap-3 shadow-2xl">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-amber-400 text-base animate-pulse">🛎️</span>
+              <div className="truncate">
+                <span className="font-extrabold block text-xs">
+                  {visibleObjects.length} asunto{visibleObjects.length === 1 ? '' : 's'} en el escritorio
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  Tocá cualquier objeto para inspeccionar o decidir
+                </span>
+              </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* ─── 3. BARRA INFERIOR DE ACCIÓN (AVANZAR QUINCENA) ─── */}
+      <div className={`p-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t ${
+        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900 border-slate-800'
+      }`}>
+        <div className="text-xs text-slate-500 text-center sm:text-left">
+          <span className="font-bold text-slate-700 dark:text-slate-300">República del Sur</span> — Período Constitucional 2032-2036
+          <span className="block text-[11px] text-slate-400 mt-0.5">
+            {pacingMode === 'acelerado' ? 'Ritmo acelerado: sin emergencias activas' : 'Ritmo quincenal: gestión de coyuntura'}
+          </span>
         </div>
 
-        {/* ─── OBJETOS FÍSICOS SOBRE EL ESCRITORIO ─── */}
-        {visibleObjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-auto z-10">
-            {visibleObjects.map((obj) => {
-              const isUrgent = obj.urgency === 'critica' || obj.urgency === 'alta';
-              const hasDecision = !!obj.associatedDecisionId;
+        <button
+          type="button"
+          onClick={handleAdvance}
+          className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-500/20 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
+        >
+          <span>▶</span> AVANZAR QUINCENA
+        </button>
+      </div>
 
-              return (
-                <div
-                  key={obj.id}
-                  onClick={() => handleObjectClick(obj)}
-                  className={`p-5 rounded-2xl cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-md border ${
-                    isUrgent
-                      ? isLight
-                        ? 'bg-rose-50 border-rose-400 text-slate-900 shadow-sm'
-                        : 'bg-[#1E293B] border-[#EF4444] text-[#F8FAFC] shadow-red-500/10'
-                      : isLight
-                        ? 'bg-white text-slate-900 border-slate-200 hover:border-blue-500'
-                        : 'bg-[#1E293B] text-[#F8FAFC] border-[#334155] hover:border-[#3B82F6]'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2 font-sans">
-                    <span className="text-xl">
-                      {obj.type === 'diario' && '🗞️'}
-                      {obj.type === 'expediente' && '📁'}
-                      {obj.type === 'carpeta-roja' && '🔴'}
-                      {obj.type === 'carta-gobernador' && '✉️'}
-                      {obj.type === 'telefono' && '☎️'}
-                      {obj.type === 'encuesta' && '📊'}
-                      {obj.type === 'informe-inteligencia' && '🕵️'}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-2xl uppercase tracking-wider ${
-                      isUrgent
-                        ? 'bg-rose-600 text-white'
-                        : hasDecision
-                        ? 'bg-blue-600 text-white'
-                        : isLight
-                        ? 'bg-slate-200 text-slate-700'
-                        : 'bg-amber-900/40 text-amber-300 border border-amber-700/40'
-                    }`}>
-                      {hasDecision ? (isUrgent ? 'URGENTE' : 'REQUIERE DECISIÓN') : 'INFORMATIVO'}
-                    </span>
-                  </div>
-
-                  <h3 className={`font-bold text-sm leading-snug mb-1 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
-                    {obj.title}
-                  </h3>
-                  <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                    {obj.subtitle}
-                  </p>
-
-                  <div className={`mt-3 pt-2 border-t flex justify-between items-center text-[10px] font-sans font-bold ${
-                    isLight ? 'border-slate-200' : 'border-[#334155]/60'
-                  }`}>
-                    <span className={hasDecision ? 'text-blue-600 font-extrabold' : isLight ? 'text-slate-500' : 'text-amber-400/70'}>
-                      {hasDecision ? '⚖️ Ver opciones abajo ➔' : 'Inspeccionar ➔'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="my-auto z-10 text-center py-16">
-            <span className="text-4xl block mb-4">🏛️</span>
-            <p className={`text-sm font-sans font-bold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>El escritorio está despejado.</p>
-            <p className={`text-xs font-sans mt-1 ${isLight ? 'text-slate-400' : 'text-[#94A3B8]/70'}`}>
-              No hay emergencias inmediatas. Podés avanzar quincena a quincena.
-            </p>
-          </div>
-        )}
-
-        {/* ─── 3. INSPECTOR DE DOCUMENTOS INFORMATIVOS ─── */}
-        {activeObject && (
-          <div className={`absolute inset-x-2 sm:inset-x-4 md:inset-x-6 top-2 sm:top-4 md:top-6 bottom-2 sm:bottom-4 md:bottom-6 z-30 p-6 sm:p-8 rounded-2xl md:rounded-3xl border shadow-2xl overflow-y-auto font-sans ${
-            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC]'
-          }`}>
-            <div className={`flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start border-b pb-4 mb-6 ${
-              isLight ? 'border-slate-200' : 'border-[#30363D]'
+      {/* Modal Inspector de Documentos Informativos */}
+      {activeObject && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActiveObject(null)}
+          title={`📄 Inspeccionar: ${activeObject.title}`}
+        >
+          <div className="space-y-4 text-xs font-sans">
+            <div className={`p-4 rounded-2xl border space-y-2 ${
+              isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'
             }`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">
-                  {activeObject.type === 'diario' ? '🗞️' : activeObject.type === 'telefono' ? '☎️' : activeObject.type === 'carta-gobernador' ? '✉️' : activeObject.type === 'encuesta' ? '📊' : '📁'}
-                </span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">📄</span>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#3B82F6]">
-                    DOCUMENTO INFORMATIVO
+                  <h4 className="font-extrabold text-sm">{activeObject.title}</h4>
+                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider">
+                    Documento oficial de despacho
                   </span>
-                  <h2 className={`text-lg sm:text-xl font-black leading-tight break-words ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
-                    {activeObject.title}
-                  </h2>
                 </div>
               </div>
-              <button
-                onClick={() => handleDismissReadOnly(activeObject.id)}
-                className="w-full sm:w-auto shrink-0 px-4 py-2 text-xs font-bold rounded-2xl bg-[#3B82F6] text-white border border-[#2563EB] hover:bg-[#2563EB] transition-all cursor-pointer shadow-md"
-              >
-                ✕ Cerrar y archivar
-              </button>
-            </div>
-
-            <div className="space-y-6 text-sm leading-relaxed">
-              <p className={`text-base leading-relaxed p-5 rounded-2xl border italic ${
-                isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-[#1E293B] border-[#334155] text-[#F8FAFC]'
-              }`}>
+              <p className="text-xs leading-relaxed italic border-t pt-2 border-slate-200/60 font-serif">
                 "{activeObject.inspectText}"
               </p>
-              <p className={`text-xs italic font-sans ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
-                Este documento es informativo. Podés cerrarlo y seguir adelante.
-              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDismissedObjects(prev => new Set(prev).add(activeObject.id));
+                  setActiveObject(null);
+                }}
+                className="px-4 py-2 rounded-2xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 font-bold text-xs cursor-pointer transition-colors"
+              >
+                ✕ Archivar documento
+              </button>
             </div>
           </div>
-        )}
+        </Modal>
+      )}
 
-        {/* ─── ADVERTENCIA DE NEGLIGENCIA ─── */}
-        {showSkipWarning && (
-          <div className="absolute inset-x-2 sm:inset-x-4 md:inset-x-6 bottom-20 z-40 bg-rose-950/95 border-2 border-rose-500/60 p-4 sm:p-6 rounded-2xl shadow-2xl font-sans text-center backdrop-blur-md">
-            <p className="text-rose-200 text-sm font-bold mb-2">⚠️ Hay decisiones sin tomar en tu escritorio</p>
-            <p className="text-rose-300/80 text-xs mb-4 leading-relaxed">
-              No tomar ninguna decisión puede ser peor que tomar una mala.<br/>
-              La inacción de un mandatario tiene consecuencias reales sobre el país.
+      {/* Advertencia de decisiones pendientes antes de avanzar */}
+      {showSkipWarning && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowSkipWarning(false)}
+          title="⚠️ Decisiones requeridas en el escritorio"
+        >
+          <div className="space-y-4 text-xs font-sans">
+            <p className={isLight ? 'text-slate-700' : 'text-slate-300'}>
+              Tenés asuntos urgentes de Estado sobre el escritorio sin resolver. Si avanzás sin tomar una decisión, el gabinete o la coyuntura resolverán por defecto.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3">
+
+            <div className="flex justify-end gap-3 pt-2">
               <button
-                onClick={() => setShowSkipWarning(false)}
-                className="w-full sm:w-auto px-5 py-2 text-xs font-bold rounded-xl bg-white text-slate-950 hover:bg-slate-200 transition-all cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setShowSkipWarning(false);
+                  const el = document.getElementById('asuntos-urgentes');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs cursor-pointer transition-colors"
               >
                 Volver y decidir
               </button>
               <button
+                type="button"
                 onClick={handleForceAdvance}
-                className="w-full sm:w-auto px-5 py-2 text-xs font-bold rounded-xl border border-rose-500/60 text-rose-300 hover:bg-rose-900 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer transition-colors"
               >
-                Avanzar sin decidir (asumí las consecuencias)
+                Avanzar sin decidir
               </button>
             </div>
           </div>
-        )}
-
-        {/* ─── BARRA INFERIOR ─── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center z-10 pt-4 border-t border-amber-900/40 font-sans">
-          <span className="text-center sm:text-left text-xs text-amber-300/60 font-medium">
-            República del Sur — Período Constitucional 2032-2036
-          </span>
-
-          <div className="flex items-center gap-3">
-            <span className="hidden md:inline text-[10px] text-amber-300/60 uppercase tracking-wider">
-              {pacingMode === 'acelerado' ? 'Ritmo acelerado: informe al proximo asunto' : 'Ritmo quincenal: decisiones activas'}
-            </span>
-            <div className="flex flex-col items-stretch gap-2 sm:items-end">
-              <Button
-                variant={hasDecisionItems ? 'ghost' : 'gold'}
-                size="lg"
-                onClick={handleAdvance}
-                className={`w-full sm:w-auto min-w-[220px] font-black tracking-wide ${hasDecisionItems ? 'border border-amber-400/60 text-amber-300' : 'shadow-xl shadow-amber-500/30'}`}
-              >
-                ▶ AVANZAR QUINCENA
-              </Button>
-              {hasDecisionItems ? (
-                <span className="text-center text-[11px] font-bold text-rose-300 sm:text-right">
-                  Asuntos que requieren atención · {visibleObjects.filter((obj) => obj.associatedDecisionId).length} decisión{visibleObjects.filter((obj) => obj.associatedDecisionId).length === 1 ? '' : 'es'}
-                </span>
-              ) : informationalItems.length > 0 ? (
-                <span className="text-center text-[11px] text-amber-300/70 sm:text-right">
-                  Asuntos que requieren atención · informativos, podés abrirlos o seguir adelante
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+        </Modal>
+      )}
     </div>
   );
 };

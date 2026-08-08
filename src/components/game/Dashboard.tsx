@@ -12,7 +12,10 @@ export const Dashboard: React.FC = () => {
   const gameState = useGameStore((s) => s.gameState);
   const theme = useUIStore((s) => s.theme);
   const isLight = theme === 'light';
+  
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showSectors, setShowSectors] = useState(false);
 
   if (!gameState) return null;
 
@@ -24,28 +27,54 @@ export const Dashboard: React.FC = () => {
   const selectedScar: NationalScar | undefined = uniqueScars.find((scar) => scar.id === selectedScarId);
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Encabezado y Botón Tutorial ¿Cómo se juega? */}
-      <div className={`flex justify-between items-center p-3.5 px-5 rounded-2xl border ${
+    <div className="space-y-5 font-sans">
+      {/* Encabezado y controles de colapso rápido */}
+      <div className={`flex flex-wrap justify-between items-center p-3.5 px-5 rounded-2xl border ${
         isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'
       }`}>
         <span className={`text-xs font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
-          <span>🏛️</span> Presidencia de la República — Tablero principal
+          <span>🏛️</span> Presidencia de la República — Tablero y estadísticas
         </span>
-        <button
-          type="button"
-          onClick={() => setShowHowToPlay(!showHowToPlay)}
-          className={`text-xs font-bold px-3.5 py-1.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-1.5 ${
-            isLight
-              ? 'text-blue-800 bg-blue-50 border-blue-200 hover:bg-blue-100'
-              : 'text-amber-300 hover:text-amber-200 bg-amber-950/40 hover:bg-amber-900/60 border-amber-500/30'
-          }`}
-        >
-          <span>❓</span> {showHowToPlay ? 'Ocultar guía' : '¿Cómo se juega?'}
-        </button>
+        <div className="flex items-center gap-2 mt-2 sm:mt-0">
+          <button
+            type="button"
+            onClick={() => setShowStats(!showStats)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              showStats
+                ? (isLight ? 'bg-slate-200 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-slate-100')
+                : (isLight ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-900')
+            }`}
+          >
+            <span>📊</span> {showStats ? 'Ocultar indicadores' : 'Ver indicadores del país'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSectors(!showSectors)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              showSectors
+                ? (isLight ? 'bg-slate-200 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-slate-100')
+                : (isLight ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200' : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-900')
+            }`}
+          >
+            <span>👔</span> {showSectors ? 'Ocultar sectores' : 'Ver respaldo por sector'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowHowToPlay(!showHowToPlay)}
+            className={`text-xs font-bold px-3.5 py-1.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              isLight
+                ? 'text-blue-800 bg-blue-50 border-blue-200 hover:bg-blue-100'
+                : 'text-amber-300 hover:text-amber-200 bg-amber-950/40 hover:bg-amber-900/60 border-amber-500/30'
+            }`}
+          >
+            <span>❓</span> {showHowToPlay ? 'Ocultar guía' : '¿Cómo se juega?'}
+          </button>
+        </div>
       </div>
 
-      {/* Tutorial Claro y Simple: ¿Cómo se juega? */}
+      {/* Guía Rápida Reescrita y Coherente */}
       {showHowToPlay && (
         <div className={`p-5 rounded-2xl border text-xs space-y-4 ${
           isLight ? 'bg-blue-50/60 border-blue-200 text-slate-800' : 'bg-[#161B22] border-blue-500/40 text-slate-200'
@@ -54,7 +83,7 @@ export const Dashboard: React.FC = () => {
             <h4 className={`font-extrabold text-sm flex items-center gap-2 ${
               isLight ? 'text-blue-900' : 'text-sky-300'
             }`}>
-              <span>📘</span> GUÍA RÁPIDA: ¿CÓMO SE JUEGA A MI MANDATO?
+              <span>📘</span> Guía rápida: ¿Cómo se juega a Mi Mandato?
             </h4>
             <span className="text-[11px] font-bold text-slate-500">1 turno = 1 quincena (2 turnos = 1 mes)</span>
           </div>
@@ -63,88 +92,92 @@ export const Dashboard: React.FC = () => {
             <div className={`p-3.5 rounded-2xl border space-y-1.5 ${
               isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800'
             }`}>
-              <span className="font-bold text-emerald-600 block text-xs">1. La diaria presidencial</span>
+              <span className="font-bold text-emerald-600 block text-xs">1. Tu despacho presidencial</span>
               <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Al apretar <b>Avanzar turno</b> transcurre 1 quincena. En tu escritorio llegarán llamadas, expedientes y decretos para resolver. Cada elección afecta la economía, la sociedad y tu popularidad.
+                En la mesa principal tenés objetos interactivos: <b>teléfono rojo</b>, <b>diarios</b>, <b>expedientes</b> y <b>mensajes confidenciales</b>. Hacé click sobre ellos para inspeccionarlos o abrir decisiones. Al presionar <b>AVANZAR QUINCENA</b> transcurre el tiempo.
               </p>
             </div>
 
             <div className={`p-3.5 rounded-2xl border space-y-1.5 ${
               isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800'
             }`}>
-              <span className="font-bold text-sky-600 block text-xs">2. Indicadores del país</span>
+              <span className="font-bold text-sky-600 block text-xs">2. Indicadores vitales</span>
               <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Cuidá las <b>Reservas del Banco Central</b> (divisas), la <b>Inflación</b> y tu <b>Estrés / Salud</b>. Si el estrés supera el 80% o la salud cae, podés colapsar y perder el gobierno.
+                Controlá el nivel de <b>Reservas del Banco Central</b> (divisas), la <b>Inflación</b> y tu nivel de <b>Estrés / Salud</b>. Si el estrés supera el 80% o las reservas se agotan, tu gobierno colapsa antes de tiempo.
               </p>
             </div>
 
             <div className={`p-3.5 rounded-2xl border space-y-1.5 ${
               isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800'
             }`}>
-              <span className="font-bold text-purple-600 block text-xs">3. Entretenimiento fuera de la diaria</span>
+              <span className="font-bold text-purple-600 block text-xs">3. Vías alternativas de gestión</span>
               <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                • 🗺️ <b>Provincias</b>: Giro de fondos, obras y fuerzas de seguridad.<br />
-                • 👤 <b>Personaje</b>: Autos, quinta de Olivos o vida austera.<br />
-                • 📊 <b>Sectores</b>: Hacé click en cualquier sector del gráfico para recibir informes de tu asesor.
+                • 🗺️ <b>Provincias</b>: Pactá con gobernadores o desplegá fuerzas federales.<br />
+                • 👤 <b>Perfil y vida</b>: Administrá tu patrimonio, salud y autos oficiales.<br />
+                • 📰 <b>Prensa y redes</b>: Medí el clima social y las portadas de los diarios.
               </p>
             </div>
           </div>
         </div>
       )}
 
+      {/* Gráfico Donut de Reputación por Sectores (Colapsable) */}
+      {showSectors && (
+        <div className="animate-fadeIn">
+          <SectorDonutChart reputation={reputation ?? {}} />
+        </div>
+      )}
 
-
-      {/* Gráfico Donut de Reputación por Sectores (con Asesor Político al hacer click) */}
-      <SectorDonutChart reputation={reputation ?? {}} />
-
-      {/* Indicadores clave del país */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        {/* Tu gestión */}
-        <Card title="👤 Tu gestión" subtitle={`${character.name} ${character.surname}`}>
-          <div className="space-y-3">
-            <StatBar label="Popularidad" value={character.popularity} color="emerald" />
-            <StatBar label="Salud física" value={character.health} color="rose" />
-            <StatBar label="Estrés acumulado" value={character.stress} color="gold" />
-            <div className={`flex justify-between text-[11px] pt-2 border-t ${
-              isLight ? 'text-slate-600 border-slate-200' : 'text-slate-400 border-slate-800'
-            }`}>
-              <span>Idealismo: <b className="text-sky-600 font-bold">{Math.round(character.idealismo)}</b></span>
-              <span>Pragmatismo: <b className={isLight ? 'text-amber-800 font-bold' : 'text-amber-400 font-bold'}>{Math.round(character.pragmatismo)}</b></span>
-              <span>Ego: <b className="text-purple-600 font-bold">{Math.round(character.ego)}</b></span>
+      {/* Indicadores clave del país (Colapsable) */}
+      {showStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 animate-fadeIn">
+          {/* Tu gestión */}
+          <Card title="👤 Tu gestión" subtitle={`${character.name} ${character.surname}`}>
+            <div className="space-y-3">
+              <StatBar label="Popularidad" value={character.popularity} color="emerald" />
+              <StatBar label="Salud física" value={character.health} color="rose" />
+              <StatBar label="Estrés acumulado" value={character.stress} color="gold" />
+              <div className={`flex justify-between text-[11px] pt-2 border-t ${
+                isLight ? 'text-slate-600 border-slate-200' : 'text-slate-400 border-slate-800'
+              }`}>
+                <span>Idealismo: <b className="text-sky-600 font-bold">{Math.round(character.idealismo)}</b></span>
+                <span>Pragmatismo: <b className={isLight ? 'text-amber-800 font-bold' : 'text-amber-400 font-bold'}>{Math.round(character.pragmatismo)}</b></span>
+                <span>Ego: <b className="text-purple-600 font-bold">{Math.round(character.ego)}</b></span>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        {/* Economía */}
-        <Card title="📊 Economía" subtitle="Indicadores macroeconómicos">
-          <div className="space-y-3">
-            <StatBar label="Inflación" value={nation.economy.inflation} color="rose" />
-            <StatBar label="Reservas del Banco Central" value={nation.economy.reserves} color="emerald" />
-            <StatBar label="Deuda pública" value={nation.economy.debt} color="gold" />
-            <StatBar label="PBI y actividad" value={nation.economy.gdp} color="sky" />
-          </div>
-        </Card>
+          {/* Economía */}
+          <Card title="📊 Economía" subtitle="Indicadores macroeconómicos">
+            <div className="space-y-3">
+              <StatBar label="Inflación" value={nation.economy.inflation} color="rose" />
+              <StatBar label="Reservas del Banco Central" value={nation.economy.reserves} color="emerald" />
+              <StatBar label="Deuda pública" value={nation.economy.debt} color="gold" />
+              <StatBar label="PBI y actividad" value={nation.economy.gdp} color="sky" />
+            </div>
+          </Card>
 
-        {/* Sociedad */}
-        <Card title="👥 Sociedad" subtitle="Bienestar social">
-          <div className="space-y-3">
-            <StatBar label="Pobreza" value={nation.society.poverty} color="rose" />
-            <StatBar label="Empleo registrado" value={nation.society.employment} color="emerald" />
-            <StatBar label="Inseguridad" value={nation.society.insecurity} color="rose" />
-            <StatBar label="Conflictos sociales" value={nation.society.socialConflicts} color="gold" />
-          </div>
-        </Card>
+          {/* Sociedad */}
+          <Card title="👥 Sociedad" subtitle="Bienestar social">
+            <div className="space-y-3">
+              <StatBar label="Pobreza" value={nation.society.poverty} color="rose" />
+              <StatBar label="Empleo registrado" value={nation.society.employment} color="emerald" />
+              <StatBar label="Inseguridad" value={nation.society.insecurity} color="rose" />
+              <StatBar label="Conflictos sociales" value={nation.society.socialConflicts} color="gold" />
+            </div>
+          </Card>
 
-        {/* Gobernanza */}
-        <Card title="🏛️ Gobernanza" subtitle="Calidad institucional">
-          <div className="space-y-3">
-            <StatBar label="Institucionalidad" value={nation.governance.institutionality} color="sky" />
-            <StatBar label="Corrupción percibida" value={nation.governance.corruption} color="gold" />
-            <StatBar label="Imagen internacional" value={nation.governance.internationalImage} color="emerald" />
-            <StatBar label="Confianza ciudadana" value={nation.society.trust} color="purple" />
-          </div>
-        </Card>
-      </div>
+          {/* Gobernanza */}
+          <Card title="🏛️ Gobernanza" subtitle="Calidad institucional">
+            <div className="space-y-3">
+              <StatBar label="Institucionalidad" value={nation.governance.institutionality} color="sky" />
+              <StatBar label="Corrupción percibida" value={nation.governance.corruption} color="gold" />
+              <StatBar label="Imagen internacional" value={nation.governance.internationalImage} color="emerald" />
+              <StatBar label="Confianza ciudadana" value={nation.society.trust} color="purple" />
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Cicatrices Nacionales (Memoria Viva) */}
       {uniqueScars.length > 0 && (
