@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { CalendarState } from '@engine/types';
 import { useGameStore } from '@stores/game-store';
+import { useUIStore } from '@stores/ui-store';
 import { Badge } from '@components/ui/Badge';
 import { Modal } from '@components/ui/Modal';
 
@@ -43,6 +44,8 @@ const MONTH_DYNAMIC_DESCRIPTORS: Record<number, string> = {
 
 export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
   const gameState = useGameStore((s) => s.gameState);
+  const theme = useUIStore((s) => s.theme);
+  const isLight = theme === 'light';
 
   const [selectedYear, setSelectedYear] = useState<number>(gameState?.calendar.year ?? 2032);
   const [inspectMonth, setInspectMonth] = useState<number | null>(null);
@@ -239,8 +242,10 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
 
                   {/* Estado del Mes */}
                   {isPast && (
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">
-                      ✓ ENE
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                      isLight ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60'
+                    }`}>
+                      ✓ {MONTH_SHORT[idx]}
                     </span>
                   )}
                   {isCurrent && (

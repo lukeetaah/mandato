@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUIStore } from '@stores/ui-store';
 
 export interface StatBarProps {
   label: string;
@@ -65,6 +66,8 @@ export const StatBar: React.FC<StatBarProps> = ({
   showPercentage = true,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const theme = useUIStore((s) => s.theme);
+  const isLight = theme === 'light';
   const percentage = Math.max(0, Math.min(100, (value / max) * 100));
 
   const colorStyles = {
@@ -91,13 +94,13 @@ export const StatBar: React.FC<StatBarProps> = ({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div className="flex justify-between items-center text-xs mb-1.5 font-medium">
-        <span className="text-slate-300 hover:text-sky-300 transition-colors flex items-center gap-1">
-          {label} <span className="text-[10px] text-slate-500">ℹ️</span>
+        <span className={`transition-colors flex items-center gap-1 ${isLight ? 'text-slate-700 hover:text-sky-600' : 'text-slate-300 hover:text-sky-300'}`}>
+          {label} <span className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>ℹ️</span>
         </span>
-        {showPercentage && <span className="text-slate-400 font-bold">{Math.round(value)}%</span>}
+        {showPercentage && <span className={`font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{Math.round(value)}%</span>}
       </div>
 
-      <div className="w-full bg-slate-800/80 rounded-full h-2 overflow-hidden border border-slate-700/50">
+      <div className={`w-full rounded-full h-2 overflow-hidden border ${isLight ? 'bg-slate-200 border-slate-300/50' : 'bg-slate-800/80 border-slate-700/50'}`}>
         <div
           className={`h-full rounded-full transition-all duration-500 ease-out ${colorStyles[color]}`}
           style={{ width: `${percentage}%` }}
@@ -106,18 +109,20 @@ export const StatBar: React.FC<StatBarProps> = ({
 
       {/* Tooltip con diagnóstico educativo y personalizado */}
       {showTooltip && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-2rem)] p-3.5 rounded-xl bg-slate-950/95 border border-sky-500/40 text-slate-200 text-xs shadow-2xl backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 space-y-2">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-1.5 font-bold">
-            <span className="text-sky-400">{label} ({Math.round(value)}%)</span>
-            <span className="text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded">{statusLevel}</span>
+        <div className={`absolute left-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-2rem)] p-3.5 rounded-2xl border text-xs shadow-2xl backdrop-blur-md pointer-events-none space-y-2 ${
+          isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-slate-950/95 border-sky-500/40 text-slate-200'
+        }`}>
+          <div className={`flex justify-between items-center border-b pb-1.5 font-bold ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
+            <span className={isLight ? 'text-sky-600' : 'text-sky-400'}>{label} ({Math.round(value)}%)</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded ${isLight ? 'text-amber-800 bg-amber-100' : 'text-amber-300 bg-amber-950/60'}`}>{statusLevel}</span>
           </div>
 
-          <p className="text-[11px] text-slate-300 italic">{diag.meaning}</p>
+          <p className={`text-[11px] italic ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{diag.meaning}</p>
 
           <div className="space-y-1 text-[10px]">
-            <div><span className="text-rose-400 font-semibold">Lo empeora:</span> <span className="text-slate-400">{diag.worsenedBy}</span></div>
-            <div><span className="text-emerald-400 font-semibold">Lo mejora:</span> <span className="text-slate-400">{diag.improvedBy}</span></div>
-            <div><span className="text-amber-400 font-semibold">Riesgos latentes:</span> <span className="text-slate-400">{diag.risks}</span></div>
+            <div><span className="text-rose-500 font-semibold">Lo empeora:</span> <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>{diag.worsenedBy}</span></div>
+            <div><span className="text-emerald-500 font-semibold">Lo mejora:</span> <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>{diag.improvedBy}</span></div>
+            <div><span className="text-amber-500 font-semibold">Riesgos latentes:</span> <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>{diag.risks}</span></div>
           </div>
         </div>
       )}

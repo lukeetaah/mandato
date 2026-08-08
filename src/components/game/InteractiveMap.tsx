@@ -3,6 +3,8 @@ import type { Province, MapLayer } from '@engine/types';
 import { Card } from '@components/ui/Card';
 import { Badge } from '@components/ui/Badge';
 import { StatBar } from '@components/ui/StatBar';
+import { useGameStore } from '@stores/game-store';
+import { useUIStore } from '@stores/ui-store';
 
 export interface InteractiveMapProps {
   provinces: Province[];
@@ -69,13 +71,72 @@ const PROVINCE_PATHS: Record<string, { d: string; cx: number; cy: number; label:
 };
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSelectProvince }) => {
+  const theme = useUIStore((s) => s.theme);
+  const isLight = theme === 'light';
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(provinces[0] ?? null);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>(provinces[0]?.id ?? 'noroeste-andino');
   const [activeLayer, setActiveLayer] = useState<MapLayer>('politico');
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const selectedProvince = provinces.find((p) => p.id === selectedProvinceId) ?? provinces[0] ?? null;
 
   const handleSelect = (prov: Province) => {
-    setSelectedProvince(prov);
+    setSelectedProvinceId(prov.id);
     if (onSelectProvince) onSelectProvince(prov);
+  };
+
+  const executeRegionalAction = (actionType: 'fondos' | 'fuerzas' | 'obras' | 'pacto') => {
+    if (!selectedProvince) return;
+
+    useGameStore.getState().updateGameState((prev) => {
+      const updatedProvinces = prev.provinces.map((p) => {
+        if (p.id !== selectedProvince.id) return p;
+        if (actionType === 'fondos') {
+          return {
+            ...p,
+            socialMood: Math.min(50, p.socialMood + 8),
+            economy: { ...p.economy, investment: Math.min(100, p.economy.investment + 5) },
+          };
+        }
+        if (actionType === 'fuerzas') {
+          return {
+            ...p,
+            socialMood: Math.max(-50, p.socialMood - 3),
+            economy: { ...p.economy, employment: Math.max(0, p.economy.employment - 2) },
+          };
+        }
+        if (actionType === 'obras') {
+          return {
+            ...p,
+            economy: {
+              ...p.economy,
+              infrastructure: Math.min(100, p.economy.infrastructure + 10),
+              employment: Math.min(100, p.economy.employment + 6),
+            },
+          };
+        }
+        // pacto
+        return {
+          ...p,
+          socialMood: Math.min(50, p.socialMood + 12),
+        };
+      });
+
+      return {
+        ...prev,
+        provinces: updatedProvinces,
+      };
+    });
+
+    const messages = {
+      fondos: `💰 Giro de Coparticipación Extra enviado a ${selectedProvince.name}. El humor social provincial mejoró.`,
+      fuerzas: `🛡️ Fuerzas de Seguridad enviadas a ${selectedProvince.name}. Orden restablecido en accesos clave.`,
+      obras: `🏗️ Presupuesto de Infraestructura aprobado para ${selectedProvince.name}. Crece el empleo local.`,
+      pacto: `🤝 Acuerdo Político sellado con el Gobernador de ${selectedProvince.name}. Aumenta la gobernabilidad.`,
+    };
+
+    setActionFeedback(messages[actionType]);
+    setTimeout(() => setActionFeedback(null), 4000);
   };
 
   const getProvinceLayerColor = (prov: Province) => {
@@ -97,23 +158,30 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
       if (prov.economy.infrastructure >= 60) return '#8B5CF6';
       return '#64748B';
     }
-    // físico
     return '#334155';
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start font-sans">
       {/* Mapa SVG Físico-Político Contiguo */}
-      <div className="lg:col-span-5 glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col items-center border border-slate-700/60 shadow-2xl space-y-4">
+      <div className={`lg:col-span-5 p-6 rounded-2xl relative overflow-hidden flex flex-col items-center border shadow-2xl space-y-4 ${
+        isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-[#161B22] border-[#30363D]'
+      }`}>
         <div className="w-full flex justify-between items-center">
           <div>
-            <h3 className="text-xl font-black text-slate-100 tracking-wide">MAPA DE LA REPÚBLICA</h3>
-            <p className="text-xs text-sky-400 font-semibold">República del Sur — 8 provincias contiguas</p>
+            <h3 className={`text-xl font-black tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+              MAPA DE LA REPÚBLICA
+            </h3>
+            <p className={`text-xs font-semibold ${isLight ? 'text-blue-700' : 'text-sky-400'}`}>
+              República del Sur — 8 provincias contiguas
+            </p>
           </div>
         </div>
 
         {/* Capas opcionales del mapa */}
-        <div className="w-full flex flex-wrap gap-1.5 justify-center bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 text-[11px]">
+        <div className={`w-full flex flex-wrap gap-1.5 justify-center p-1.5 rounded-xl border text-[11px] ${
+          isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+        }`}>
           {[
             { id: 'politico', label: 'Modo político' },
             { id: 'fisico', label: 'Modo físico' },
@@ -126,7 +194,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
               onClick={() => setActiveLayer(layer.id as MapLayer)}
               className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                 activeLayer === layer.id
-                  ? 'bg-sky-400 text-slate-950 shadow-sm'
+                  ? isLight
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-sky-400 text-slate-950 shadow-sm'
+                  : isLight
+                  ? 'text-slate-600 hover:text-slate-900'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -136,15 +208,19 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
         </div>
 
         {/* Leyenda de colores del modo activo */}
-        <div className="w-full bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-[10px] text-slate-300">
-          <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Referencia de colores</span>
+        <div className={`w-full p-3 rounded-xl border text-[10px] ${
+          isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+        }`}>
+          <span className={`font-bold uppercase tracking-wider block mb-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            Referencia de colores
+          </span>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {activeLayer === 'politico' && (
               <>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" /> Apoyo alto (humor social ≥ 10)</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6] inline-block" /> Estable (humor social ≥ −5)</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block" /> Tensión (humor social ≥ −15)</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] inline-block" /> Conflicto (humor social &lt; −15)</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" /> Apoyo alto (humor ≥ 10)</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6] inline-block" /> Estable (humor ≥ −5)</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block" /> Tensión (humor ≥ −15)</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] inline-block" /> Conflicto (humor &lt; −15)</span>
               </>
             )}
             {activeLayer === 'economico' && (
@@ -162,13 +238,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
             )}
             {activeLayer === 'infraestructura' && (
               <>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] inline-block" /> Infraestructura desarrollada (≥ 60)</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#64748B] inline-block" /> Infraestructura deficiente (&lt; 60)</span>
-                <span className="flex items-center gap-1 text-amber-400">— — Rutas nacionales</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] inline-block" /> Desarrollada (≥ 60)</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#64748B] inline-block" /> Deficiente (&lt; 60)</span>
               </>
             )}
             {activeLayer === 'fisico' && (
-              <span className="text-slate-500 italic">Vista topográfica general — sin datos superpuestos</span>
+              <span className="italic">Vista topográfica general — sin datos superpuestos</span>
             )}
           </div>
         </div>
@@ -186,29 +261,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-
-              <pattern id="relief-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 0 10 L 10 0 M 0 0 L 10 10" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-              </pattern>
             </defs>
 
-            {/* Océano Atlántico */}
-            <rect width="220" height="590" fill="rgba(15, 23, 42, 0.4)" rx="12" />
+            <rect width="220" height="590" fill={isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.4)'} rx="12" />
 
-            {/* Ríos principales */}
-            <path
-              d="M 175 120 C 160 140, 160 160, 155 180"
-              fill="none"
-              stroke="#38BDF8"
-              strokeWidth="2"
-              strokeDasharray="2 2"
-              className="opacity-70"
-            />
-            <text x="175" y="145" fill="#38BDF8" fontSize="6" fontStyle="italic" className="select-none opacity-60">Río de la Plata</text>
-
-            <rect width="220" height="590" fill="url(#relief-pattern)" pointerEvents="none" />
-
-            {/* Polígonos de las 8 Provincias */}
             {provinces.map((prov) => {
               const pathData = PROVINCE_PATHS[prov.id];
               if (!pathData) return null;
@@ -250,41 +306,30 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                 </g>
               );
             })}
-
-            {/* Capa de Infraestructura (Rutas y Ferrocarriles) */}
-            {activeLayer === 'infraestructura' && (
-              <g pointerEvents="none">
-                <path d="M 165 170 L 115 150 L 70 50" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="3 2" />
-                <path d="M 165 170 L 95 250 L 85 420" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="3 2" />
-                <text x="120" y="270" fill="#F59E0B" fontSize="6" fontWeight="bold">Ruta Nac. 3</text>
-              </g>
-            )}
-
-            {/* Línea de la Cordillera de los Andes */}
-            <path
-              d="M 25 10 L 15 150 L 30 210 L 20 290 L 30 380 L 40 460 L 50 530 L 75 575"
-              fill="none"
-              stroke="rgba(248, 250, 252, 0.4)"
-              strokeWidth="2.5"
-              strokeDasharray="5 3"
-            />
           </svg>
         </div>
       </div>
 
-      {/* Ficha Detallada de Provincia */}
+      {/* Ficha Detallada & Acciones en la Provincia (Item 3) */}
       <div className="lg:col-span-7 space-y-4">
         {selectedProvince ? (
           <Card
             title={selectedProvince.name}
             subtitle={`Población: ${(selectedProvince.population / 1_000_000).toFixed(2)} millones de habitantes`}
             action={<Badge variant="gold">Clima: {selectedProvince.climate}</Badge>}
-            className="border-sky-500/30"
           >
             <div className="space-y-4 text-xs">
-              <p className="text-slate-300 italic bg-slate-900/60 p-3 rounded-lg border border-slate-800 leading-relaxed font-serif">
+              <p className={`italic p-3 rounded-2xl border leading-relaxed font-serif ${
+                isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-900/60 border-slate-800 text-slate-300'
+              }`}>
                 "{selectedProvince.culture}"
               </p>
+
+              {actionFeedback && (
+                <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-xl font-bold animate-fadeIn">
+                  {actionFeedback}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 pt-2">
                 <StatBar label="Humor social territorial" value={selectedProvince.socialMood + 50} color="gold" />
@@ -295,31 +340,65 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                 <StatBar label="PBI provincial" value={selectedProvince.economy.gdp} color="emerald" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-800">
-                <div>
-                  <span className="text-slate-400 font-semibold block mb-1.5">Recursos estratégicos:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedProvince.resources.map((res) => (
-                      <Badge key={res} variant="sky">{res}</Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-slate-400 font-semibold block mb-1.5">Matriz industrial:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedProvince.industries.map((ind) => (
-                      <Badge key={ind} variant="slate">{ind.toUpperCase()}</Badge>
-                    ))}
-                  </div>
+              {/* Panel de Acciones Presidenciales en la Provincia (Item 3) */}
+              <div className={`p-4 rounded-2xl border space-y-2.5 ${
+                isLight ? 'bg-blue-50/70 border-blue-200' : 'bg-[#1E293B] border-blue-500/30'
+              }`}>
+                <h4 className={`font-bold text-xs flex items-center gap-1.5 uppercase tracking-wider ${
+                  isLight ? 'text-blue-900' : 'text-sky-300'
+                }`}>
+                  <span>🏛️</span> Acciones Directas del Ejecutivo en {selectedProvince.name}
+                </h4>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => executeRegionalAction('fondos')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                      isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-amber-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    💰 Fondos de Coparticipación Extra
+                    <span className="block text-[10px] font-normal text-slate-500">+8 Humor social · Mejora inversión</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => executeRegionalAction('fuerzas')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                      isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-rose-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    🛡️ Desplegar Fuerzas Federales
+                    <span className="block text-[10px] font-normal text-slate-500">Orden en rutas y seguridad local</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => executeRegionalAction('obras')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                      isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-emerald-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    🏗️ Obras de Infraestructura
+                    <span className="block text-[10px] font-normal text-slate-500">+10 Infraestructura · +6 Empleo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => executeRegionalAction('pacto')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                      isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-sky-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    🤝 Negociar Pacto con Gobernador
+                    <span className="block text-[10px] font-normal text-slate-500">Aumenta lealtad y apoyo territorial</span>
+                  </button>
                 </div>
               </div>
             </div>
           </Card>
-        ) : (
-          <Card className="text-center py-12">
-            <p className="text-slate-400 text-sm">Hacé clic en cualquier provincia del mapa para inspeccionar sus recursos e indicadores.</p>
-          </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );

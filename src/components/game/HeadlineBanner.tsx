@@ -7,7 +7,9 @@ export interface HeadlineBannerProps {
 }
 
 export const HeadlineBanner: React.FC<HeadlineBannerProps> = ({ headlines }) => {
+  const theme = useUIStore((s) => s.theme);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const isLight = theme === 'light';
 
   if (headlines.length === 0) return null;
 
@@ -15,7 +17,7 @@ export const HeadlineBanner: React.FC<HeadlineBannerProps> = ({ headlines }) => 
   const tickerItems = [...headlines, ...headlines];
 
   return (
-    <div className="w-full border-y border-slate-800/80 bg-slate-950/70 overflow-hidden" aria-label="Titulares de prensa">
+    <div className={`w-full border-y overflow-hidden ${isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/70'}`} aria-label="Titulares de prensa">
       <div className="mx-auto max-w-[1600px] flex items-center h-8">
         <span className="h-full px-3 flex items-center bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-[0.16em] shrink-0">
           Titulares
@@ -27,11 +29,11 @@ export const HeadlineBanner: React.FC<HeadlineBannerProps> = ({ headlines }) => 
                 type="button"
                 key={`${headline.id}-${index}`}
                 onClick={openPress}
-                className="text-[11px] text-slate-300 hover:text-amber-200 transition-colors cursor-pointer"
+                className={`text-[11px] transition-colors cursor-pointer ${isLight ? 'text-slate-700 hover:text-amber-700' : 'text-slate-300 hover:text-amber-200'}`}
                 title="Abrir Prensa y redes"
               >
-                <span className="text-amber-400 mr-2">◆</span>
-                <span className="text-slate-500 mr-1">{headline.outletName}:</span>
+                <span className={`mr-2 ${isLight ? 'text-amber-500' : 'text-amber-400'}`}>◆</span>
+                <span className={`mr-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>{headline.outletName}:</span>
                 {headline.title}
               </button>
             ))}
@@ -40,7 +42,7 @@ export const HeadlineBanner: React.FC<HeadlineBannerProps> = ({ headlines }) => 
         <button
           type="button"
           onClick={openPress}
-          className="hidden sm:block px-3 text-[9px] font-bold uppercase tracking-wider text-slate-500 hover:text-sky-300 transition-colors cursor-pointer shrink-0"
+          className={`hidden sm:block px-3 text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer shrink-0 ${isLight ? 'text-slate-400 hover:text-sky-600' : 'text-slate-500 hover:text-sky-300'}`}
         >
           Ver prensa →
         </button>

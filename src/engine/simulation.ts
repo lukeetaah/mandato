@@ -665,6 +665,23 @@ export function advanceTurn(state: GameState): GameState {
     }
   }
 
+  // 2b. ENTROPÍA DE POPULARIDAD & BENEFICIOS DE RESERVAS (Items 1 y 2)
+  // Popularidad extremadamente alta (>85) sufre desgaste natural por fatiga pública y expectativas
+  if (currentCharacter.popularity > 85) {
+    const decay = (currentCharacter.popularity - 80) * 0.15;
+    currentCharacter = { ...currentCharacter, popularity: clamp(currentCharacter.popularity - decay) };
+  }
+
+  // Reservas al máximo (>=90%) otorgan beneficios pero aumentan la presión opositora sindical
+  if (currentNation.economy.reserves >= 90) {
+    currentNation = {
+      ...currentNation,
+      governance: { ...currentNation.governance, internationalImage: clamp(currentNation.governance.internationalImage + 0.8) },
+      economy: { ...currentNation.economy, inflation: clamp(currentNation.economy.inflation - 0.4) },
+      society: { ...currentNation.society, socialConflicts: clamp(currentNation.society.socialConflicts + 0.5) },
+    };
+  }
+
   // 3. Evaluar Elecciones Multinivel
   // Elecciones Provinciales (Cada 12 meses)
   if (nextCalendar.turnsUntilProvincial === 0 && nextTurn > 1) {
