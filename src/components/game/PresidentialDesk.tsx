@@ -189,8 +189,8 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
-        {/* 🪟 CAPA DELIMITADA A LA VENTANA REAL (lado derecho de la imagen, con cortinas) */}
-        <div className="absolute top-0 right-0 w-[38%] h-[60%] overflow-hidden pointer-events-none">
+        {/* 🪟 CAPA DELIMITADA A LA VENTANA REAL (esquina superior derecha, entre cortinas) */}
+        <div className="absolute top-[2%] right-[3%] w-[34%] h-[46%] overflow-hidden pointer-events-none">
           {/* Noche: la ventana se oscurece porque afuera es de noche */}
           {timeOfDay === 'noche' && (
             <div className="absolute inset-0 bg-[#0a0f1a]/80 transition-all duration-700" />
