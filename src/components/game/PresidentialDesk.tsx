@@ -129,11 +129,11 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const weatherCondition = calendar.weatherCondition ?? 'despejado';
   const fortnight = calendar.fortnight ?? 1;
 
-  // Clases dinámicas de filtro limpio para momento del día
+  // Filtro de luz ambiental sobre toda la escena
   const timeOfDayFilterClass: Record<string, string> = {
     mañana: 'brightness-[0.98] contrast-[1.02]',
-    tarde: 'brightness-[0.92] contrast-[1.08] sepia-[0.12]',
-    noche: 'brightness-[0.78] contrast-[1.18]',
+    tarde: 'brightness-[0.90] contrast-[1.08] sepia-[0.15]',
+    noche: 'brightness-[0.65] contrast-[1.25]',
   };
   const activeTimeFilter = timeOfDayFilterClass[timeOfDay] ?? 'brightness-[0.95]';
 
@@ -180,7 +180,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </div>
       </div>
 
-      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN LIMPIA Y EFECTOS ATMOSFÉRICOS (SIN LÍNEAS NI PUNTOS GRISES) ─── */}
+      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON EFECTOS DELIMITADOS A LA VENTANA Y NOCHE OSCURA ─── */}
       <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-950 select-none">
         {/* Imagen de Fondo del Escritorio */}
         <img
@@ -189,31 +189,44 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
-        {/* 🌅 CAPA LIMPIA DE ILUMINACIÓN POR MOMENTO DEL DÍA */}
-        {timeOfDay === 'tarde' && (
-          <div className="absolute inset-0 bg-gradient-to-tr from-amber-950/30 via-orange-900/15 to-transparent mix-blend-color-burn pointer-events-none" />
-        )}
-        {timeOfDay === 'noche' && (
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950/80 pointer-events-none" />
-        )}
-        {timeOfDay === 'mañana' && (
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-50/10 via-transparent to-slate-950/30 pointer-events-none" />
-        )}
+        {/* 🪟 CAPA DELIMITADA EXCLUSIVAMENTE A LA VENTANA AL FONDO (top:0%, left:20%, width:60%, height:48%) */}
+        <div className="absolute top-0 left-[20%] w-[60%] h-[48%] overflow-hidden pointer-events-none rounded-b-xl">
+          {/* Noche real afuera: oscurece drásticamente la ventana */}
+          {timeOfDay === 'noche' && (
+            <div className="absolute inset-0 bg-[#020617]/85 backdrop-brightness-50 backdrop-contrast-125 transition-all duration-700" />
+          )}
 
-        {/* 🌧️ CAPAS ATMOSFÉRICAS LIMPIAS (SIN LÍNEAS O PUNTOS DE GRADIENTES GRISES) */}
-        {weatherCondition === 'lluvia' && (
-          <div className="absolute inset-0 bg-slate-950/20 backdrop-contrast-[1.05] pointer-events-none transition-all" />
-        )}
-        {weatherCondition === 'tormenta' && (
-          <div className="absolute inset-0 bg-slate-950/30 backdrop-contrast-[1.1] pointer-events-none transition-all">
-            <div className="absolute inset-0 bg-sky-200/10 animate-pulse pointer-events-none duration-1000" />
-          </div>
-        )}
-        {weatherCondition === 'niebla' && (
-          <div className="absolute inset-0 backdrop-blur-[1.5px] bg-slate-200/10 pointer-events-none transition-all" />
-        )}
+          {/* Atardecer afuera */}
+          {timeOfDay === 'tarde' && (
+            <div className="absolute inset-0 bg-amber-950/40 mix-blend-color-burn transition-all duration-700" />
+          )}
 
-        {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES (PERFECTAMENTE ALINEADOS) */}
+          {/* Mañana afuera */}
+          {timeOfDay === 'mañana' && (
+            <div className="absolute inset-0 bg-amber-100/10 mix-blend-soft-light transition-all duration-700" />
+          )}
+
+          {/* Lluvia delimitada solo a la ventana */}
+          {weatherCondition === 'lluvia' && (
+            <div className="absolute inset-0 bg-slate-950/30 backdrop-contrast-[1.05] transition-all">
+              <div className="absolute inset-0 opacity-40 bg-gradient-to-b from-transparent via-white/10 to-transparent animate-pulse" />
+            </div>
+          )}
+
+          {/* Tormenta delimitada solo a la ventana */}
+          {weatherCondition === 'tormenta' && (
+            <div className="absolute inset-0 bg-slate-950/50 backdrop-contrast-[1.1] transition-all">
+              <div className="absolute inset-0 bg-sky-200/20 animate-pulse duration-700" />
+            </div>
+          )}
+
+          {/* Niebla delimitada solo a la ventana */}
+          {weatherCondition === 'niebla' && (
+            <div className="absolute inset-0 backdrop-blur-[2px] bg-slate-200/20 transition-all" />
+          )}
+        </div>
+
+        {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES */}
         {visibleObjects.map((obj) => {
           const config = HOTSPOT_MAPPING[obj.type] ?? {
             type: obj.type,
