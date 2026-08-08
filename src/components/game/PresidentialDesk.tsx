@@ -14,7 +14,7 @@ interface DeskHotspotConfig {
   type: string;
   label: string;
   icon: string;
-  channel: string; // 'telefono' | 'escritorio' | 'prensa' | 'sobre_puerta' | 'gobernadores' | 'inteligencia'
+  channel: string;
   position: { top: string; left: string; width: string; height: string };
   glowColor: string;
 }
@@ -25,7 +25,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Teléfono rojo presidencial',
     icon: '📞',
     channel: 'Llamada directa de emergencia',
-    position: { top: '55%', left: '78%', width: '16%', height: '24%' },
+    position: { top: '50%', left: '76%', width: '18%', height: '26%' },
     glowColor: 'rgba(239, 68, 68, 0.5)',
   },
   diario: {
@@ -33,7 +33,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Prensa y diario del día',
     icon: '📰',
     channel: 'Edición matutina de opinión pública',
-    position: { top: '65%', left: '42%', width: '22%', height: '22%' },
+    position: { top: '64%', left: '40%', width: '24%', height: '22%' },
     glowColor: 'rgba(59, 130, 246, 0.5)',
   },
   expediente: {
@@ -41,7 +41,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Expediente ministerial urgente',
     icon: '📁',
     channel: 'Decreto y proyecto en firmas',
-    position: { top: '58%', left: '16%', width: '22%', height: '26%' },
+    position: { top: '56%', left: '14%', width: '22%', height: '26%' },
     glowColor: 'rgba(245, 158, 11, 0.5)',
   },
   'carpeta-roja': {
@@ -49,7 +49,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Carpeta roja clasificada',
     icon: '📕',
     channel: 'Operación secreta de Estado',
-    position: { top: '48%', left: '5%', width: '18%', height: '22%' },
+    position: { top: '44%', left: '4%', width: '18%', height: '24%' },
     glowColor: 'rgba(225, 29, 72, 0.6)',
   },
   'carta-gobernador': {
@@ -57,7 +57,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Correspondencia federal',
     icon: '✉️',
     channel: 'Exigencia de provincias y coparticipación',
-    position: { top: '42%', left: '40%', width: '18%', height: '18%' },
+    position: { top: '38%', left: '38%', width: '20%', height: '20%' },
     glowColor: 'rgba(16, 185, 129, 0.5)',
   },
   'informe-inteligencia': {
@@ -65,7 +65,7 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Informe confidencial AFI',
     icon: '🕵️',
     channel: 'Reporte de riesgo e inteligencia',
-    position: { top: '45%', left: '62%', width: '16%', height: '20%' },
+    position: { top: '42%', left: '60%', width: '18%', height: '22%' },
     glowColor: 'rgba(168, 85, 247, 0.5)',
   },
 };
@@ -129,6 +129,14 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const weatherCondition = calendar.weatherCondition ?? 'despejado';
   const fortnight = calendar.fortnight ?? 1;
 
+  // Clases dinámicas de filtro para momento del día
+  const timeOfDayFilterClass: Record<string, string> = {
+    mañana: 'brightness-[0.98] contrast-[1.02]',
+    tarde: 'brightness-[0.92] contrast-[1.08] sepia-[0.15]',
+    noche: 'brightness-[0.78] contrast-[1.20] hue-rotate-[10deg]',
+  };
+  const activeTimeFilter = timeOfDayFilterClass[timeOfDay] ?? 'brightness-[0.95]';
+
   return (
     <div className={`relative w-full rounded-2xl md:rounded-3xl overflow-hidden border flex flex-col font-sans transition-all ${
       isLight
@@ -142,7 +150,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-black tracking-wide flex items-center gap-2">
-              <span>🏛️</span> Despacho Presidencial — Casa Rosada
+              <span>🏛️</span> Despacho Presidencial
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
               Sillón de Rivadavia
@@ -172,21 +180,38 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </div>
       </div>
 
-      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN DE CASA ROSADA ─── */}
+      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN LIMPIA Y EFECTOS CLIMÁTICOS ─── */}
       <div className="relative w-full aspect-[16/9] min-h-[380px] max-h-[580px] overflow-hidden bg-slate-950 select-none">
         {/* Imagen de Fondo del Escritorio */}
         <img
           src="/presidential-desk.jpg"
-          alt="Escritorio Presidencial Argentina"
-          className="w-full h-full object-cover object-center filter brightness-[0.9] contrast-[1.05]"
+          alt="Escritorio Presidencial"
+          className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
-        {/* Overlay de Sombra y Clima */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
+        {/* 🌅 CAPA DE ILUMINACIÓN POR MOMENTO DEL DÍA */}
+        {timeOfDay === 'tarde' && (
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-900/30 via-orange-600/15 to-transparent mix-blend-color-burn pointer-events-none" />
+        )}
+        {timeOfDay === 'noche' && (
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-950/90 pointer-events-none" />
+        )}
+        {timeOfDay === 'mañana' && (
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-100/10 via-transparent to-slate-950/40 pointer-events-none" />
+        )}
 
-        {/* Efecto de Lluvia si aplica */}
+        {/* 🌧️ CAPAS DINÁMICAS DE CLIMA */}
         {weatherCondition === 'lluvia' && (
-          <div className="absolute inset-0 opacity-25 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px] animate-pulse" />
+          <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:14px_22px] animate-pulse" />
+        )}
+        {weatherCondition === 'tormenta' && (
+          <>
+            <div className="absolute inset-0 opacity-60 pointer-events-none bg-[radial-gradient(#64748b_1.5px,transparent_1.5px)] [background-size:10px_20px] animate-pulse" />
+            <div className="absolute inset-0 bg-sky-200/10 animate-ping pointer-events-none duration-1000" />
+          </>
+        )}
+        {weatherCondition === 'niebla' && (
+          <div className="absolute inset-0 backdrop-blur-[1px] bg-slate-300/15 pointer-events-none transition-opacity" />
         )}
 
         {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES */}
