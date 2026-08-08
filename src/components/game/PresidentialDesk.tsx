@@ -25,48 +25,48 @@ const HOTSPOT_MAPPING: Record<string, DeskHotspotConfig> = {
     label: 'Teléfono rojo presidencial',
     icon: '📞',
     channel: 'Llamada directa de emergencia',
-    position: { top: '50%', left: '76%', width: '18%', height: '26%' },
-    glowColor: 'rgba(239, 68, 68, 0.5)',
+    position: { top: '50%', left: '72%', width: '22%', height: '32%' },
+    glowColor: 'rgba(239, 68, 68, 0.6)',
   },
   diario: {
     type: 'diario',
     label: 'Prensa y diario del día',
     icon: '📰',
     channel: 'Edición matutina de opinión pública',
-    position: { top: '64%', left: '40%', width: '24%', height: '22%' },
-    glowColor: 'rgba(59, 130, 246, 0.5)',
+    position: { top: '58%', left: '36%', width: '28%', height: '28%' },
+    glowColor: 'rgba(59, 130, 246, 0.6)',
   },
   expediente: {
     type: 'expediente',
     label: 'Expediente ministerial urgente',
     icon: '📁',
     channel: 'Decreto y proyecto en firmas',
-    position: { top: '56%', left: '14%', width: '22%', height: '26%' },
-    glowColor: 'rgba(245, 158, 11, 0.5)',
+    position: { top: '52%', left: '8%', width: '26%', height: '32%' },
+    glowColor: 'rgba(245, 158, 11, 0.6)',
   },
   'carpeta-roja': {
     type: 'carpeta-roja',
     label: 'Carpeta roja clasificada',
     icon: '📕',
     channel: 'Operación secreta de Estado',
-    position: { top: '44%', left: '4%', width: '18%', height: '24%' },
-    glowColor: 'rgba(225, 29, 72, 0.6)',
+    position: { top: '40%', left: '6%', width: '22%', height: '26%' },
+    glowColor: 'rgba(225, 29, 72, 0.7)',
   },
   'carta-gobernador': {
     type: 'carta-gobernador',
     label: 'Correspondencia federal',
     icon: '✉️',
     channel: 'Exigencia de provincias y coparticipación',
-    position: { top: '38%', left: '38%', width: '20%', height: '20%' },
-    glowColor: 'rgba(16, 185, 129, 0.5)',
+    position: { top: '38%', left: '36%', width: '24%', height: '22%' },
+    glowColor: 'rgba(16, 185, 129, 0.6)',
   },
   'informe-inteligencia': {
     type: 'informe-inteligencia',
     label: 'Informe confidencial AFI',
     icon: '🕵️',
     channel: 'Reporte de riesgo e inteligencia',
-    position: { top: '42%', left: '60%', width: '18%', height: '22%' },
-    glowColor: 'rgba(168, 85, 247, 0.5)',
+    position: { top: '40%', left: '62%', width: '22%', height: '26%' },
+    glowColor: 'rgba(168, 85, 247, 0.6)',
   },
 };
 
@@ -129,11 +129,11 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const weatherCondition = calendar.weatherCondition ?? 'despejado';
   const fortnight = calendar.fortnight ?? 1;
 
-  // Clases dinámicas de filtro para momento del día
+  // Clases dinámicas de filtro limpio para momento del día
   const timeOfDayFilterClass: Record<string, string> = {
     mañana: 'brightness-[0.98] contrast-[1.02]',
-    tarde: 'brightness-[0.92] contrast-[1.08] sepia-[0.15]',
-    noche: 'brightness-[0.78] contrast-[1.20] hue-rotate-[10deg]',
+    tarde: 'brightness-[0.92] contrast-[1.08] sepia-[0.12]',
+    noche: 'brightness-[0.78] contrast-[1.18]',
   };
   const activeTimeFilter = timeOfDayFilterClass[timeOfDay] ?? 'brightness-[0.95]';
 
@@ -180,8 +180,8 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </div>
       </div>
 
-      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN LIMPIA Y EFECTOS CLIMÁTICOS ─── */}
-      <div className="relative w-full aspect-[16/9] min-h-[380px] max-h-[580px] overflow-hidden bg-slate-950 select-none">
+      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON IMAGEN LIMPIA Y EFECTOS ATMOSFÉRICOS (SIN LÍNEAS NI PUNTOS GRISES) ─── */}
+      <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-950 select-none">
         {/* Imagen de Fondo del Escritorio */}
         <img
           src="/presidential-desk.jpg"
@@ -189,40 +189,39 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
-        {/* 🌅 CAPA DE ILUMINACIÓN POR MOMENTO DEL DÍA */}
+        {/* 🌅 CAPA LIMPIA DE ILUMINACIÓN POR MOMENTO DEL DÍA */}
         {timeOfDay === 'tarde' && (
-          <div className="absolute inset-0 bg-gradient-to-tr from-amber-900/30 via-orange-600/15 to-transparent mix-blend-color-burn pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-950/30 via-orange-900/15 to-transparent mix-blend-color-burn pointer-events-none" />
         )}
         {timeOfDay === 'noche' && (
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-950/90 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950/80 pointer-events-none" />
         )}
         {timeOfDay === 'mañana' && (
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-100/10 via-transparent to-slate-950/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-50/10 via-transparent to-slate-950/30 pointer-events-none" />
         )}
 
-        {/* 🌧️ CAPAS DINÁMICAS DE CLIMA */}
+        {/* 🌧️ CAPAS ATMOSFÉRICAS LIMPIAS (SIN LÍNEAS O PUNTOS DE GRADIENTES GRISES) */}
         {weatherCondition === 'lluvia' && (
-          <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:14px_22px] animate-pulse" />
+          <div className="absolute inset-0 bg-slate-950/20 backdrop-contrast-[1.05] pointer-events-none transition-all" />
         )}
         {weatherCondition === 'tormenta' && (
-          <>
-            <div className="absolute inset-0 opacity-60 pointer-events-none bg-[radial-gradient(#64748b_1.5px,transparent_1.5px)] [background-size:10px_20px] animate-pulse" />
-            <div className="absolute inset-0 bg-sky-200/10 animate-ping pointer-events-none duration-1000" />
-          </>
+          <div className="absolute inset-0 bg-slate-950/30 backdrop-contrast-[1.1] pointer-events-none transition-all">
+            <div className="absolute inset-0 bg-sky-200/10 animate-pulse pointer-events-none duration-1000" />
+          </div>
         )}
         {weatherCondition === 'niebla' && (
-          <div className="absolute inset-0 backdrop-blur-[1px] bg-slate-300/15 pointer-events-none transition-opacity" />
+          <div className="absolute inset-0 backdrop-blur-[1.5px] bg-slate-200/10 pointer-events-none transition-all" />
         )}
 
-        {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES */}
+        {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES (PERFECTAMENTE ALINEADOS) */}
         {visibleObjects.map((obj) => {
           const config = HOTSPOT_MAPPING[obj.type] ?? {
             type: obj.type,
             label: obj.title,
             icon: '📄',
             channel: 'Documento sobre el escritorio',
-            position: { top: '55%', left: '50%', width: '20%', height: '20%' },
-            glowColor: 'rgba(59, 130, 246, 0.5)',
+            position: { top: '52%', left: '40%', width: '22%', height: '24%' },
+            glowColor: 'rgba(59, 130, 246, 0.6)',
           };
 
           const isHovered = hoveredHotspot === obj.id;
@@ -336,27 +335,27 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </button>
       </div>
 
-      {/* Modal Inspector de Documentos Informativos */}
+      {/* Modal Inspector de Documentos Informativos Enmarcado Elegante */}
       {activeObject && (
         <Modal
           isOpen={true}
           onClose={() => setActiveObject(null)}
-          title={`📄 Inspeccionar: ${activeObject.title}`}
+          title={`📄 Documento oficial de despacho`}
         >
           <div className="space-y-4 text-xs font-sans">
-            <div className={`p-4 rounded-2xl border space-y-2 ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'
+            <div className={`p-5 rounded-2xl border space-y-3 ${
+              isLight ? 'bg-white border-slate-200 text-slate-800 shadow-sm' : 'bg-slate-900 border-slate-700 text-slate-100 shadow-lg'
             }`}>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">📄</span>
+              <div className="flex items-center gap-3 border-b pb-3 border-slate-200/60 dark:border-slate-800">
+                <span className="text-3xl p-2 rounded-2xl bg-amber-500/10 border border-amber-500/30">📄</span>
                 <div>
-                  <h4 className="font-extrabold text-sm">{activeObject.title}</h4>
-                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider">
-                    Documento oficial de despacho
+                  <h4 className="font-extrabold text-sm text-amber-700 dark:text-amber-300">{activeObject.title}</h4>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    Despacho Presidencial · Archivo Oficial
                   </span>
                 </div>
               </div>
-              <p className="text-xs leading-relaxed italic border-t pt-2 border-slate-200/60 font-serif">
+              <p className="text-xs leading-relaxed italic p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800 font-serif">
                 "{activeObject.inspectText}"
               </p>
             </div>
