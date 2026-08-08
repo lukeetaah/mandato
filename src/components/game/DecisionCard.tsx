@@ -35,6 +35,8 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({ decision, onDecision
       if (onDecisionMade) onDecisionMade();
       setConfirming(false);
       setSelectedChoiceId(null);
+      // Trasladar el foco suavemente arriba al escritorio
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       // Primera selección — pedir confirmación
       setSelectedChoiceId(choiceId);

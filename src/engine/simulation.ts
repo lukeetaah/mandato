@@ -578,9 +578,21 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
         lifecycle: 'nacimiento',
         turn: 1,
         type: 'system',
-        title: 'Año 2032 — Inicio de carrera política',
-        description: `${character.name} ${character.surname} asume en la República del Sur. Un país reorganizado en 8 provincias tras el colapso de 2029. Cada medida dejará una marca indeleble.`,
-        emotionalText: 'El escritorio del despacho presidencial luce impecable. El sillón está frío, pero la historia ya comenzó a presionar.',
+        title: character.idealismo > character.pragmatismo + 15
+          ? `Asunción Presidencial — Mandato Popular`
+          : character.pragmatismo > character.idealismo + 15
+          ? `Asunción Presidencial — Alineamiento de Mercado`
+          : `Asunción Presidencial — Pacto Institucional`,
+        description: character.idealismo > character.pragmatismo + 15
+          ? `${character.name} ${character.surname} jura con compromiso social y respaldo popular. La calle celebra la asunción, pero los mercados observan con extrema desconfianza.`
+          : character.pragmatismo > character.idealismo + 15
+          ? `${character.name} ${character.surname} asume con el aval del sector financiero y empresarial. Los mercados festejan el cambio de rumbo, mientras los gremios se declaran en alerta.`
+          : `${character.name} ${character.surname} asume como figura de consenso. En un Congreso dividido, cada medida exigirá negociaciones provincia a provincia.`,
+        emotionalText: character.idealismo > character.pragmatismo + 15
+          ? 'Prometí no defraudar a la gente. La masa en la plaza canta, pero los informes de reservas en el despacho ya queman.'
+          : character.pragmatismo > character.idealismo + 15
+          ? 'La prioridad es ordenar las cuentas. Los teléfonos de las cámaras de comercio y exportadores no paran de sonar.'
+          : 'Equilibrio y pragmatismo. No hay margen para errores en un mapa político fragmentado.',
       },
     ],
     reputation,

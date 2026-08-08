@@ -273,23 +273,26 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           </div>
         )}
 
-        {/* Notificación flotante de canal directo sobre el escritorio */}
-        {visibleObjects.length > 0 && (
-          <div className="absolute bottom-3 left-4 right-4 md:right-auto md:max-w-md z-20 p-2.5 px-4 rounded-2xl bg-slate-900/90 border border-slate-700 text-white text-xs backdrop-blur-md flex items-center justify-between gap-3 shadow-2xl">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-amber-400 text-base animate-pulse">🛎️</span>
-              <div className="truncate">
-                <span className="font-extrabold block text-xs">
-                  {visibleObjects.length} asunto{visibleObjects.length === 1 ? '' : 's'} en el escritorio
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Tocá cualquier objeto para inspeccionar o decidir
-                </span>
-              </div>
+      </div>
+
+      {/* Notificación limpia de asuntos en el escritorio (debajo de la imagen, sin tapar íconos) */}
+      {visibleObjects.length > 0 && (
+        <div className={`p-2.5 px-6 border-b flex items-center justify-between gap-3 text-xs ${
+          isLight ? 'bg-amber-50 border-amber-200 text-amber-950' : 'bg-slate-900/90 border-slate-800 text-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-amber-500 text-base">🛎️</span>
+            <div className="truncate">
+              <span className="font-extrabold text-xs">
+                {visibleObjects.length} asunto{visibleObjects.length === 1 ? '' : 's'} en el escritorio
+              </span>
+              <span className="text-[11px] text-slate-500 block sm:inline sm:ml-2">
+                Tocá cualquier objeto sobre la mesa para inspeccionar o decidir
+              </span>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ─── 3. BARRA INFERIOR DE ACCIÓN (AVANZAR QUINCENA) ─── */}
       <div className={`p-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t ${

@@ -1,137 +1,133 @@
 import React, { useState } from 'react';
 import { Modal } from '@components/ui/Modal';
-import { Button } from '@components/ui/Button';
+
 
 export interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const LORE_PAGES = [
+const TOUR_STEPS = [
   {
-    title: '⚠️ Aviso de ficción y propósito',
-    content: `Mi Mandato es una obra de ficción interactiva, sin fines de lucro, creada como búsqueda artística y experimental.
+    title: '🏛️ Asunción Presidencial — Tu perfil de gobierno',
+    content: `Bienvenido a la Presidencia de la República del Sur.
+    
+Asumís el poder en un contexto de altísima volatilidad. Tus decisiones iniciales y la orientación ideológica de tu gabinete determinarán cómo reaccionan los sectores clave:
 
-El país, las instituciones, los personajes y los hechos son ficticios. Cualquier semejanza con personas o acontecimientos reales es incidental. Esta obra no constituye información, denuncia ni asesoramiento legal.
+• **Si priorizás al pueblo / trabajadores**: Ganás respaldo popular inmediato y contención en la calle, pero los mercados y empresarios exigirán disciplina fiscal y reservas.
 
-El creador no asume responsabilidad por interpretaciones, usos o consecuencias ajenas a la experiencia artística. Las ayudas voluntarias solo buscan sostener el proyecto y no cambian su carácter no comercial.`,
+• **Si priorizás los mercados / derecha**: Atraés inversiones y confianza financiera, pero la tensión social, sindicatos y protestas aumentarán la presión.
+
+• **Si mantenés el centro institucional**: Lográs consensos en el Congreso, pero serás cuestionado por la prensa y la oposición si no definís un rumbo claro.`,
   },
   {
-    title: '🌎 Año 2029 — El Colapso',
-    content: `La República Argentina dejó de existir tal como la conocíamos.
+    title: '📸 El Despacho Presidencial y los canales de entrada',
+    content: `En la pestaña **Nación / Despacho** encontrarás la mesa oficial de trabajo.
 
-Una crisis institucional sin precedentes —combinación de default soberano, polarización extrema y colapso del sistema judicial— forzó un proceso de reorganización territorial.
+Los asuntos no llegan por una sola vía:
+• 📞 **Teléfono rojo**: Llamadas directas de ministros, embajadores y emergencias.
+• 📰 **Prensa diaria**: Noticias del día y estado de opinión pública.
+• 📁 **Expedientes**: Proyectos de ley, decretos y solicitudes de presupuesto.
+• ✉️ **Cartas de Gobernadores**: Demandas regionales de coparticipación.
 
-Las 24 jurisdicciones —23 provincias y la Ciudad Autónoma de Buenos Aires— fueron consolidadas en 8 macro-regiones bajo el nuevo nombre de la **República del Sur**.
-
-El Congreso fue reformado. La Constitución, reescrita. Los partidos tradicionales se fragmentaron en nuevas fuerzas.
-
-Nada de lo viejo sobrevivió intacto.`,
+Cada quincena deberás resolver los asuntos urgentes o dejar que tu gabinete tome medidas por defecto antes de presionar **AVANZAR QUINCENA**.`,
   },
   {
-    title: '🗺️ La República del Sur — 8 Provincias',
-    content: `**Noroeste Andino** — Minería, vino y montaña. Comunidades originarias y una economía extractiva en tensión permanente.
+    title: '🗺️ Provincias, Vida Personal y Prensa',
+    content: `Para gobernar con éxito debés utilizar todos los recursos del Estado:
 
-**Litoral Subtropical** — Tierra caliente, yerba mate, represas y un río que lo inunda todo cada temporada.
+• 🗺️ **Provincias**: Invertí en infraestructura regional, enviá fuerzas federales o firmá pactos con los gobernadores para asegurar votos en el Senado.
 
-**Cuyo y los Valles** — Cordillera, energía solar y bodegas. Zona sísmica y frontera porosa.
+• 👤 **Perfil y Vida**: Gestioná tu salud física y estrés. Podés trasladarte a Olivos, descansar o realizar gestos de austeridad para proteger tu imagen pública.
 
-**Sierras del Centro** — El corazón universitario e industrial. Fábricas, tecnología y sindicatos fuertes.
-
-**Pampa Agrícola** — El granero del mundo. Soja, trigo y tractorazos. Aquí se decide si el país come.
-
-**Distrito Federal** — La capital. Poder concentrado, medios, protestas y la sede de todo lo que importa.
-
-**Costa Atlántica** — Turismo, puertos pesqueros y bases navales. El turismo salva pero la pesca depreda.
-
-**Sur Patagónico** — Petróleo, viento, hielo y soledad. El territorio más vasto y menos poblado.`,
+• 📰 **Prensa y Redes**: Monitoreá la percepción de los medios y el humor social quincena a quincena.`,
   },
   {
-    title: '⚖️ Las Reglas del Poder',
-    content: `En la República del Sur no existen decisiones limpias.
+    title: '⚖️ Reglas de Reelección e Indicadores Vitales',
+    content: `No existen decisiones limpias. Cada medida resuelve un problema y genera nuevas tensiones.
 
-**Cada medida resuelve un problema y crea dos nuevos.**
+**Indicadores críticos**:
+• **Reservas del Central**: Si caen por debajo del 20%, arriesgás una corrida bancaria.
+• **Estrés / Salud**: Si supera el 80%, podés colapsar médicamente.
+• **Elecciones**: Cada 2 años hay legislativas (requiere +40% popularidad) y cada 4 presidenciales.
 
-• La prensa, los mercados y las redes operan con intereses propios. Nada es transparente.
-
-• El sistema aprende: tus patrones de negociación, favores y medidas modifican cómo te responden sindicatos, empresarios y gobernadores.
-
-• Las consecuencias son diferidas: las bombas de tiempo estallan turnos después de que firmes una licitación o prometas un favor.
-
-• Tu salud y estrés importan: gobernar destruye el cuerpo. Si colapsás, tu mandato termina.
-
-• Hay elecciones cada 2 años (legislativas) y cada 4 (presidenciales). Perder las presidenciales es game over.
-
-**La verdadera pregunta nunca es "¿qué decisión es correcta?"**
-
-**Sino: "¿qué costo estás dispuesto a pagar?"**`,
-  },
-  {
-    title: '🎮 Cómo Jugar',
-    content: `**Cada turno = 1 mes** de gobierno.
-
-📊 **Dashboard** → Indicadores macro de economía, sociedad y gobernanza. Hover en cada barra para ver tips de cómo moverlas.
-
-⚖️ **Decisiones** → Situaciones que exigen tu respuesta. Cada opción tiene beneficiarios, opositores y riesgos. Algunas tienen bombas de tiempo.
-
-🗺️ **Provincias** → Mapa interactivo con datos de cada región. El humor social varía según tus políticas.
-
-🛤️ **Trayectoria** → Mapa visual de todas tus decisiones. ¿Sos pragmático, idealista o algo más oscuro?
-
-📰 **Prensa** → Titulares del día, medios con línea editorial propia, y redes sociales con vida propia.
-
-**No hay camino correcto. Solo consecuencias.**`,
+¿Estás listo para asumir el mandato?`,
   },
 ];
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
-  const [page, setPage] = useState(0);
-  const currentPage = LORE_PAGES[page]!;
-  const isLastPage = page === LORE_PAGES.length - 1;
+  const [step, setStep] = useState(0);
+  const currentStep = TOUR_STEPS[step]!;
+  const isLastStep = step === TOUR_STEPS.length - 1;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={currentPage.title}>
-      <div className="space-y-4 text-sm text-slate-300 leading-relaxed min-h-[280px]">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-2">
-          {LORE_PAGES.map((_, idx) => (
-            <div
-              key={idx}
-              className={`w-2 h-2 rounded-full transition-all ${
-                idx === page ? 'bg-amber-400 w-6' : idx < page ? 'bg-sky-400' : 'bg-slate-700'
-              }`}
-            />
-          ))}
+    <Modal isOpen={isOpen} onClose={onClose} title={currentStep.title}>
+      <div className="space-y-4 text-sm font-sans leading-relaxed">
+        {/* Indicador de progreso */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex gap-1.5">
+            {TOUR_STEPS.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-2 rounded-full transition-all ${
+                  idx === step ? 'bg-amber-400 w-8' : idx < step ? 'bg-sky-400 w-3' : 'bg-slate-700 w-3'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">
+            Paso {step + 1} de {TOUR_STEPS.length}
+          </span>
         </div>
 
-        {/* Content */}
-        <div className="whitespace-pre-line text-[13px] leading-relaxed">
-          {currentPage.content.split('**').map((part, idx) => (
+        {/* Texto del paso */}
+        <div className="whitespace-pre-line text-xs leading-relaxed p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-200 min-h-[220px]">
+          {currentStep.content.split('**').map((part, idx) => (
             idx % 2 === 1
-              ? <strong key={idx} className="text-sky-300 font-semibold">{part}</strong>
+              ? <strong key={idx} className="text-amber-300 font-bold">{part}</strong>
               : <span key={idx}>{part}</span>
           ))}
         </div>
 
-        {/* Navigation */}
-        <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
-          {page > 0 ? (
-            <Button variant="ghost" size="sm" onClick={() => setPage(page - 1)}>
-              ← Anterior
-            </Button>
-          ) : (
-            <div />
-          )}
+        {/* Botones de navegación con opción explícita de Omitir */}
+        <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs text-slate-400 hover:text-slate-200 font-semibold cursor-pointer underline px-2 py-1"
+          >
+            Omitir tutorial
+          </button>
 
-          {isLastPage ? (
-            <Button variant="gold" size="md" onClick={onClose}>
-              Iniciar Mandato ➔
-            </Button>
-          ) : (
-            <Button variant="primary" size="md" onClick={() => setPage(page + 1)}>
-              Siguiente →
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={() => setStep(step - 1)}
+                className="px-3.5 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs cursor-pointer transition-colors"
+              >
+                ← Anterior
+              </button>
+            )}
+
+            {isLastStep ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs cursor-pointer transition-colors shadow-lg"
+              >
+                ¡Asumir el Mandato! ➔
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setStep(step + 1)}
+                className="px-4 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs cursor-pointer transition-colors"
+              >
+                Siguiente →
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Modal>
