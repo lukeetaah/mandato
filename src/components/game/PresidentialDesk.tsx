@@ -189,40 +189,31 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
-        {/* 🪟 CAPA DELIMITADA EXCLUSIVAMENTE A LA VENTANA AL FONDO (top:0%, left:20%, width:60%, height:48%) */}
-        <div className="absolute top-0 left-[20%] w-[60%] h-[48%] overflow-hidden pointer-events-none rounded-b-xl">
-          {/* Noche real afuera: oscurece drásticamente la ventana */}
+        {/* 🪟 CAPA DELIMITADA A LA VENTANA REAL (lado derecho de la imagen, con cortinas) */}
+        <div className="absolute top-0 right-0 w-[38%] h-[60%] overflow-hidden pointer-events-none">
+          {/* Noche: la ventana se oscurece porque afuera es de noche */}
           {timeOfDay === 'noche' && (
-            <div className="absolute inset-0 bg-[#020617]/85 backdrop-brightness-50 backdrop-contrast-125 transition-all duration-700" />
+            <div className="absolute inset-0 bg-[#0a0f1a]/80 transition-all duration-700" />
           )}
 
-          {/* Atardecer afuera */}
+          {/* Atardecer: tinte cálido dorado en la ventana */}
           {timeOfDay === 'tarde' && (
-            <div className="absolute inset-0 bg-amber-950/40 mix-blend-color-burn transition-all duration-700" />
+            <div className="absolute inset-0 bg-amber-900/25 mix-blend-multiply transition-all duration-700" />
           )}
 
-          {/* Mañana afuera */}
-          {timeOfDay === 'mañana' && (
-            <div className="absolute inset-0 bg-amber-100/10 mix-blend-soft-light transition-all duration-700" />
-          )}
-
-          {/* Lluvia delimitada solo a la ventana */}
+          {/* Lluvia: ventana empañada y oscurecida */}
           {weatherCondition === 'lluvia' && (
-            <div className="absolute inset-0 bg-slate-950/30 backdrop-contrast-[1.05] transition-all">
-              <div className="absolute inset-0 opacity-40 bg-gradient-to-b from-transparent via-white/10 to-transparent animate-pulse" />
-            </div>
+            <div className="absolute inset-0 bg-slate-700/25 backdrop-blur-[0.5px] transition-all" />
           )}
 
-          {/* Tormenta delimitada solo a la ventana */}
+          {/* Tormenta: ventana muy oscura por nubes densas */}
           {weatherCondition === 'tormenta' && (
-            <div className="absolute inset-0 bg-slate-950/50 backdrop-contrast-[1.1] transition-all">
-              <div className="absolute inset-0 bg-sky-200/20 animate-pulse duration-700" />
-            </div>
+            <div className="absolute inset-0 bg-slate-900/40 transition-all" />
           )}
 
-          {/* Niebla delimitada solo a la ventana */}
+          {/* Niebla: ventana con bruma difusa */}
           {weatherCondition === 'niebla' && (
-            <div className="absolute inset-0 backdrop-blur-[2px] bg-slate-200/20 transition-all" />
+            <div className="absolute inset-0 backdrop-blur-[2px] bg-white/15 transition-all" />
           )}
         </div>
 
