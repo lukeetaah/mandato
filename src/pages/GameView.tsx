@@ -30,13 +30,13 @@ export const GameView: React.FC = () => {
 
   const { pendingDecisions, provinces, reputation, eventLog, patterns, character } = gameState;
 
-  // Doom-style President Health/Stress Status
-  const getDoomAvatarStatus = () => {
+  // Estado de salud y estrés del Presidente
+  const getPresidentHealthStatus = () => {
     const { health, stress } = character;
     if (health >= 75 && stress < 30) {
       return {
         emoji: '😃',
-        title: 'Líder Radiante & Pleno',
+        title: 'Líder radiante y pleno',
         badgeColor: 'emerald' as const,
         description: 'Te ves descansado, enérgico y con pleno dominio sobre la agenda política.',
       };
@@ -44,33 +44,75 @@ export const GameView: React.FC = () => {
     if (health >= 50 && stress < 60) {
       return {
         emoji: '😐',
-        title: 'Sobrecargado / Ojeroso',
+        title: 'Sobrecargado y fatigado',
         badgeColor: 'gold' as const,
-        description: 'La sobrecarga diaria empieza a notarse en tu rostro. Las ojeras no se ocultan fácil.',
+        description: 'La sobrecarga diaria empieza a notarse en tu rostro. Las ojeras se hacen visibles.',
       };
     }
     if (health >= 25 && stress < 80) {
       return {
         emoji: '😰',
-        title: 'Demacrado & Estresado',
+        title: 'Demacrado y estresado',
         badgeColor: 'rose' as const,
         description: 'Tensión permanente. La prensa comenta tu aspecto desmejorado tras las reuniones.',
       };
     }
     return {
       emoji: '💀',
-      title: 'Borde de Colapso Médico',
+      title: 'Borde de colapso médico',
       badgeColor: 'rose' as const,
       description: '¡Riesgo inminente de infarto o colapso nervioso! Los médicos exigen reposo urgente.',
     };
   };
 
-  const doomStatus = getDoomAvatarStatus();
+  const presidentStatus = getPresidentHealthStatus();
 
-  // Personal Life Sims Actions (Item 5)
-  const executePersonalAction = (action: 'auto' | 'quinta' | 'vacaciones' | 'austeridad') => {
+  // Acciones Presidenciales y Estilo de Vida
+  const executePersonalAction = (action: 'olivos' | 'gala' | 'beneficencia' | 'auto' | 'vacaciones' | 'austeridad') => {
     useGameStore.getState().updateGameState((prev) => {
       const char = prev.character;
+      if (action === 'olivos') {
+        return {
+          ...prev,
+          character: {
+            ...char,
+            housing: 'residencia-oficial',
+            stress: Math.max(0, char.stress - 15),
+          },
+          nation: {
+            ...prev.nation,
+            governance: { ...prev.nation.governance, institutionality: Math.min(100, prev.nation.governance.institutionality + 3) },
+          },
+        };
+      }
+      if (action === 'gala') {
+        return {
+          ...prev,
+          character: {
+            ...char,
+            pragmatismo: Math.min(100, char.pragmatismo + 6),
+            stress: Math.max(0, char.stress - 8),
+          },
+          reputation: {
+            ...prev.reputation,
+            empresarios: Math.min(100, (prev.reputation.empresarios ?? 50) + 7),
+          },
+        };
+      }
+      if (action === 'beneficencia') {
+        return {
+          ...prev,
+          character: {
+            ...char,
+            popularity: Math.min(100, char.popularity + 5),
+            idealismo: Math.min(100, char.idealismo + 5),
+          },
+          reputation: {
+            ...prev.reputation,
+            jubilados: Math.min(100, (prev.reputation.jubilados ?? 50) + 6),
+          },
+        };
+      }
       if (action === 'auto') {
         return {
           ...prev,
@@ -82,8 +124,8 @@ export const GameView: React.FC = () => {
               ...char.possessions,
               {
                 id: `pos-${Date.now()}`,
-                name: 'Auto Deportivo de Lujo',
-                description: 'Vehículo importado con custodia oficial.',
+                name: 'Auto de alta gama con escolta',
+                description: 'Vehículo importado con blindaje de protocolo.',
                 value: 30,
                 perceptionImpact: -4,
                 acquiredTurn: prev.turn,
@@ -92,7 +134,7 @@ export const GameView: React.FC = () => {
           },
           nation: {
             ...prev.nation,
-            governance: { ...prev.nation.governance, corruption: Math.min(100, prev.nation.governance.corruption + 3) },
+            governance: { ...prev.nation.governance, corruption: Math.min(100, prev.nation.governance.corruption + 2) },
           },
         };
       }
@@ -104,16 +146,6 @@ export const GameView: React.FC = () => {
             stress: Math.max(0, char.stress - 30),
             health: Math.min(100, char.health + 15),
             popularity: Math.max(0, char.popularity - 3),
-          },
-        };
-      }
-      if (action === 'quinta') {
-        return {
-          ...prev,
-          character: {
-            ...char,
-            housing: 'quinta',
-            stress: Math.max(0, char.stress - 15),
           },
         };
       }
@@ -133,10 +165,12 @@ export const GameView: React.FC = () => {
     });
 
     const messages = {
-      auto: '🚗 Adquiriste un Auto Deportivo de Lujo. Tu estrés bajó, pero los diarios murmuran sobre tu patrimonio.',
-      vacaciones: '🌴 Te tomaste Vacaciones Privadas en la Costa. Recuperaste salud y bajaste el estrés.',
-      quinta: '🏡 Te mudaste a una Quinta de Olivos/Privada. Mayor privacidad y descanso.',
-      austeridad: '🧘 Optaste por una Vida Austera. Tu imagen pública y la transparencia institucional subieron.',
+      olivos: '🏡 Te mudaste a la Residencia Oficial de Olivos. Garantizás protocolo de seguridad y reducís estrés.',
+      gala: '🥂 Organizaste una cena de gala con líderes opositores y empresarios. Mejoró el clima institucional.',
+      beneficencia: '🎗️ Participaste en un acto a beneficio en el hospital público. Tu popularidad social subió.',
+      auto: '🚗 Adquiriste un auto de alta gama. Tu estrés bajó, aunque generó comentarios en la prensa.',
+      vacaciones: '🌴 Te tomaste vacaciones privadas. Recuperaste salud y redujiste el estrés de gestión.',
+      austeridad: '🧘 Mantuviste una vida austera. Tu imagen pública y la transparencia de gobierno aumentaron.',
     };
 
     setPersonalActionFeedback(messages[action]);
@@ -154,7 +188,7 @@ export const GameView: React.FC = () => {
     }
   }
 
-  // End of Game / Continuation Handler (Item 4)
+  // Manejo de fin de mandato o reelección
   const isMandateComplete = gameState.phase === 'opposition' || gameState.phase === 'gameover';
 
   const handleContinueReelection = () => {
@@ -170,16 +204,16 @@ export const GameView: React.FC = () => {
     <MainLayout>
       <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
 
-      {/* Modal de Cierre de Mandato / Reelección / Continuar (Item 4) */}
+      {/* Modal de cierre de mandato o reelección */}
       {isMandateComplete && (
-        <Modal isOpen={true} onClose={() => {}} title="🏛️ Balance Final y Futuro del Mandato">
+        <Modal isOpen={true} onClose={() => {}} title="🏛️ Balance final y futuro del mandato">
           <div className="space-y-5 text-xs font-sans">
             <div className={`p-4 rounded-2xl border text-center ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-amber-950/60 border-amber-500/40 text-amber-200'
             }`}>
               <span className="text-4xl block mb-2">📜</span>
               <h3 className="text-lg font-black uppercase tracking-wider">
-                {gameState.phase === 'opposition' ? 'Transición Política de Gobierno' : 'Conclusión del Mandato'}
+                {gameState.phase === 'opposition' ? 'Transición política de gobierno' : 'Conclusión del mandato'}
               </h3>
               <p className="mt-1 text-xs leading-relaxed">
                 Completaste este ciclo de gestión. Tu popularidad final fue del <b>{Math.round(character.popularity)}%</b> con un nivel de reservas del <b>{Math.round(gameState.nation.economy.reserves)}%</b>.
@@ -196,7 +230,7 @@ export const GameView: React.FC = () => {
                 onClick={handleContinueReelection}
                 className="p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs transition-all cursor-pointer text-center shadow-lg"
               >
-                🏆 Iniciar Segundo Mandato
+                🏆 Iniciar segundo mandato
                 <span className="block text-[10px] font-normal opacity-90 mt-0.5">Continuar gobernando con tu legado</span>
               </button>
 
@@ -211,7 +245,7 @@ export const GameView: React.FC = () => {
                 }}
                 className="p-3.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-slate-950 font-extrabold text-xs transition-all cursor-pointer text-center shadow-lg"
               >
-                🏛️ Liderar la Oposición
+                🏛️ Liderar la oposición
                 <span className="block text-[10px] font-normal opacity-90 mt-0.5">Ejercer influencia desde el Senado</span>
               </button>
 
@@ -222,7 +256,7 @@ export const GameView: React.FC = () => {
                 }}
                 className="p-3.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs transition-all cursor-pointer text-center shadow-lg"
               >
-                🔄 Nueva Carrera Política
+                🔄 Nueva carrera política
                 <span className="block text-[10px] font-normal opacity-90 mt-0.5">Comenzar desde cero otra partida</span>
               </button>
             </div>
@@ -238,7 +272,7 @@ export const GameView: React.FC = () => {
             <div id="asuntos-urgentes" className="space-y-4 pt-4 border-t border-slate-300 dark:border-[#30363D] scroll-mt-6">
               <div className="flex justify-between items-center">
                 <h3 className={`text-xl font-black flex items-center gap-2 font-sans ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
-                  <span>⚖️</span> Asuntos Urgentes de Estado ({pendingDecisions.length} pendiente{pendingDecisions.length === 1 ? '' : 's'})
+                  <span>⚖️</span> Asuntos urgentes de Estado ({pendingDecisions.length} pendiente{pendingDecisions.length === 1 ? '' : 's'})
                 </h3>
                 <span className={`text-xs font-bold px-3 py-1 rounded-2xl border ${
                   isLight ? 'text-amber-800 bg-amber-100 border-amber-300' : 'text-amber-400 bg-amber-950/40 border-amber-500/30'
@@ -276,28 +310,28 @@ export const GameView: React.FC = () => {
 
       {activeTab === 'personaje' && (
         <div className="space-y-6 max-w-4xl mx-auto font-sans">
-          {/* Avatar Doom-Style Status Banner (Item 5) */}
-          <div className={`p-5 rounded-2xl border flex items-center gap-4 shadow-lg ${
+          {/* Ficha de Salud y Estado del Presidente */}
+          <div className={`p-5 rounded-2xl border flex items-center gap-4 shadow-sm ${
             isLight ? 'bg-white border-slate-200' : 'bg-[#161B22] border-[#30363D]'
           }`}>
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-4xl shrink-0 drop-shadow-md">
-              {doomStatus.emoji}
+              {presidentStatus.emoji}
             </div>
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className={`text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
                   {character.name} {character.surname}
                 </h3>
-                <Badge variant={doomStatus.badgeColor}>{doomStatus.title}</Badge>
+                <Badge variant={presidentStatus.badgeColor}>{presidentStatus.title}</Badge>
               </div>
               <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                {doomStatus.description}
+                {presidentStatus.description}
               </p>
               <div className="flex gap-4 text-[11px] font-bold pt-1">
-                <span className={character.health > 50 ? 'text-emerald-500' : 'text-rose-500'}>
+                <span className={character.health > 50 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
                   ❤️ Salud: {character.health}%
                 </span>
-                <span className={character.stress < 50 ? 'text-emerald-500' : 'text-amber-500'}>
+                <span className={character.stress < 50 ? 'text-emerald-600 font-bold' : 'text-amber-700 font-bold'}>
                   🧠 Estrés: {character.stress}%
                 </span>
               </div>
@@ -305,16 +339,16 @@ export const GameView: React.FC = () => {
           </div>
 
           {personalActionFeedback && (
-            <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-2xl text-xs font-bold animate-fadeIn">
+            <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-fadeIn">
               {personalActionFeedback}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card title="Perfil y bienes personales" subtitle="Tu vivienda y estilo de vida (Sims Style)">
+            <Card title="Perfil y bienes personales" subtitle="Vivienda y bienes de protocolo">
               <div className="space-y-4 text-xs">
                 <div>
-                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Vivienda actual:</span>
+                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Vivienda actual:</span>
                   <Badge variant="gold">{HOUSING_LABELS[character.housing] ?? character.housing}</Badge>
                   <p className={`italic text-[11px] mt-2 p-3 rounded-2xl border leading-relaxed font-serif ${
                     isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-900/60 border-slate-800 text-slate-300'
@@ -324,26 +358,26 @@ export const GameView: React.FC = () => {
                 </div>
 
                 <div>
-                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Perfil detectado por la prensa:</span>
+                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Perfil detectado por la prensa:</span>
                   <Badge variant="sky">{patterns.detectedProfile.toUpperCase()}</Badge>
                 </div>
 
                 <div>
-                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Patrimonio personal:</span>
-                  <span className="font-bold text-emerald-500 text-sm">{character.wealth} pts</span>
+                  <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Patrimonio personal:</span>
+                  <span className="font-bold text-emerald-600 text-sm">{character.wealth} pts</span>
                 </div>
 
-                {/* Lista de Bienes Adquiridos */}
+                {/* Bienes de Protocolo Adquiridos */}
                 {character.possessions.length > 0 && (
                   <div>
-                    <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Bienes de Lujo Adquiridos:</span>
+                    <span className={`font-semibold block mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Bienes de protocolo adquiridos:</span>
                     <div className="space-y-1">
                       {character.possessions.map((pos) => (
                         <div key={pos.id} className={`p-2 rounded-xl border text-[11px] flex justify-between items-center ${
                           isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'
                         }`}>
                           <span>{pos.name}</span>
-                          <span className="text-amber-500 font-bold">+{pos.value} pts</span>
+                          <span className="text-amber-700 font-bold">+{pos.value} pts</span>
                         </div>
                       ))}
                     </div>
@@ -361,24 +395,57 @@ export const GameView: React.FC = () => {
                     <span className={isLight ? 'text-slate-700' : 'text-slate-300'}>
                       {REPUTATION_LABELS[groupKey as keyof typeof REPUTATION_LABELS] ?? groupKey}:
                     </span>
-                    <span className={`font-bold ${value >= 50 ? 'text-emerald-500' : 'text-rose-500'}`}>{value}%</span>
+                    <span className={`font-bold ${value >= 50 ? 'text-emerald-600' : 'text-rose-600'}`}>{value}%</span>
                   </div>
                 ))}
               </div>
             </Card>
           </div>
 
-          {/* Panel de Estilo de Vida y Negocios Personales (Item 5) */}
+          {/* Acciones Presidenciales e Interacciones de Poder */}
           <Card
-            title="🏎️ Estilo de Vida, Bienes y Conflicto de Intereses"
-            subtitle="Decisiones sobre tu descanso y patrimonio personal (Sims Style)"
+            title="🏛️ Acciones presidenciales y estilo de vida"
+            subtitle="Decisiones sobre tu residencia, agenda y relaciones de poder"
           >
             <div className="space-y-3 text-xs">
               <p className={isLight ? 'text-slate-600' : 'text-slate-300'}>
-                Tus compras personales afectan tu estrés y salud, pero pueden generar sospechas de enriquecimiento ilícito en la prensa o perjudicar tu imagen si el pueblo pasa por una crisis.
+                Como Presidente de la República podés disponer de la agenda oficial, participar en actos de beneficencia, entablar diálogo con la oposición o definir tu nivel de austeridad.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => executePersonalAction('olivos')}
+                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer space-y-1 ${
+                    isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
+                  }`}
+                >
+                  <div className="text-purple-600 text-xs">🏡 Residencia de Olivos</div>
+                  <div className="text-[10px] text-slate-500 font-normal">Mudanza a la residencia oficial</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => executePersonalAction('gala')}
+                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer space-y-1 ${
+                    isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
+                  }`}
+                >
+                  <div className="text-sky-600 text-xs">🥂 Cena con opositores</div>
+                  <div className="text-[10px] text-slate-500 font-normal">Negociar consensos con gobernadores</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => executePersonalAction('beneficencia')}
+                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer space-y-1 ${
+                    isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
+                  }`}
+                >
+                  <div className="text-rose-600 text-xs">🎗️ Acto a beneficio</div>
+                  <div className="text-[10px] text-slate-500 font-normal">+5 Popularidad en salud pública</div>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => executePersonalAction('auto')}
@@ -386,8 +453,8 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
                   }`}
                 >
-                  <div className="text-amber-500 text-xs">🚗 Auto Deportivo</div>
-                  <div className="text-[10px] text-slate-500">-12 Estrés · +30 Valor</div>
+                  <div className="text-amber-700 text-xs">🚗 Auto de alta gama</div>
+                  <div className="text-[10px] text-slate-500 font-normal">-12 Estrés personal</div>
                 </button>
 
                 <button
@@ -397,19 +464,8 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
                   }`}
                 >
-                  <div className="text-sky-500 text-xs">🌴 Vacaciones Costa</div>
-                  <div className="text-[10px] text-slate-500">-30 Estrés · +15 Salud</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => executePersonalAction('quinta')}
-                  className={`p-3 rounded-2xl border text-left font-bold transition-all cursor-pointer space-y-1 ${
-                    isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
-                  }`}
-                >
-                  <div className="text-purple-500 text-xs">🏡 Quinta de Olivos</div>
-                  <div className="text-[10px] text-slate-500">Cambia residencia principal</div>
+                  <div className="text-sky-600 text-xs">🌴 Vacaciones privadas</div>
+                  <div className="text-[10px] text-slate-500 font-normal">-30 Estrés · +15 Salud</div>
                 </button>
 
                 <button
@@ -419,21 +475,21 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-100'
                   }`}
                 >
-                  <div className="text-emerald-500 text-xs">🧘 Vida Austera</div>
-                  <div className="text-[10px] text-slate-500">+4 Popularidad pública</div>
+                  <div className="text-emerald-600 text-xs">🧘 Gestó de austeridad</div>
+                  <div className="text-[10px] text-slate-500 font-normal">+4 Popularidad pública</div>
                 </button>
               </div>
             </div>
           </Card>
 
-          {/* 💼 Operaciones Secretas & Caja Política */}
+          {/* Operaciones secretas y caja política */}
           <Card
-            title="💼 Operaciones Secretas & Caja Política"
-            subtitle="Acciones discrecionales del Poder Ejecutivo (Alto Riesgo)"
+            title="💼 Operaciones secretas y caja política"
+            subtitle="Acciones discrecionales del Poder Ejecutivo"
           >
             <div className="space-y-3 text-xs">
               <p className={isLight ? 'text-slate-600' : 'text-slate-300'}>
-                Como Presidente podés influir discrecionalmente en los poderes del Estado y construir tu patrimonio personal. Cada acción eleva el nivel de opacidad y el riesgo de carpetazo mediático o Juicio Político.
+                Como Presidente podés influir discrecionalmente en los poderes del Estado. Cada acción eleva la opacidad y el riesgo de carpetazo mediático o juicio político.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
@@ -453,9 +509,9 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
                   }`}
                 >
-                  <div className="font-extrabold text-amber-500 text-xs">📢 Pauta a medios amigos</div>
-                  <div className="text-[10px] text-slate-500">+8 Reputación en Prensa</div>
-                  <div className="text-[10px] text-rose-500 font-bold">+3 Corrupción percibida</div>
+                  <div className="font-extrabold text-amber-700 text-xs">📢 Pauta a medios amigos</div>
+                  <div className="text-[10px] text-slate-500">+8 Reputación en prensa</div>
+                  <div className="text-[10px] text-rose-600 font-bold">+3 Corrupción percibida</div>
                 </button>
 
                 <button
@@ -474,9 +530,9 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
                   }`}
                 >
-                  <div className="font-extrabold text-emerald-500 text-xs">🏦 Giro a caja offshore</div>
+                  <div className="font-extrabold text-emerald-600 text-xs">🏦 Giro a caja offshore</div>
                   <div className="text-[10px] text-slate-500">+15 Patrimonio personal</div>
-                  <div className="text-[10px] text-rose-500 font-bold">+4 Corrupción percibida</div>
+                  <div className="text-[10px] text-rose-600 font-bold">+4 Corrupción percibida</div>
                 </button>
 
                 <button
@@ -498,9 +554,9 @@ export const GameView: React.FC = () => {
                     isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
                   }`}
                 >
-                  <div className="font-extrabold text-sky-500 text-xs">⚖️ Presión sobre fiscales</div>
+                  <div className="font-extrabold text-sky-600 text-xs">⚖️ Presión sobre fiscales</div>
                   <div className="text-[10px] text-slate-500">-2 Corrupción expuesta</div>
-                  <div className="text-[10px] text-rose-500 font-bold">-5 Institucionalidad</div>
+                  <div className="text-[10px] text-rose-600 font-bold">-5 Institucionalidad</div>
                 </button>
               </div>
             </div>
@@ -520,7 +576,7 @@ export const GameView: React.FC = () => {
                 Línea temporal e historial del mandato
               </h2>
               <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Consultá las decisiones, decretos y coyunturas registradas mes a mes en tu gestión.
+                Consultá las decisiones, decretos y coyunturas registradas quincena a quincena en tu gestión.
               </p>
             </div>
           </div>
@@ -534,13 +590,13 @@ export const GameView: React.FC = () => {
             {eventLog.slice().reverse().map((log, idx) => (
               <Card key={idx} className="py-3 px-4">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-sky-500 text-xs">Turno {log.turn}</span>
+                  <span className="font-bold text-sky-600 text-xs">Turno {log.turn}</span>
                   <Badge variant="slate">{log.type.toUpperCase()}</Badge>
                 </div>
                 <h4 className={`font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>{log.title}</h4>
                 <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{log.description}</p>
                 {log.emotionalText && (
-                  <p className="text-[11px] text-amber-500 italic pt-1 font-serif">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-400 italic pt-1 font-serif">
                     💬 "{log.emotionalText}"
                   </p>
                 )}

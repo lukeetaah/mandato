@@ -170,7 +170,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
         <div className="w-full flex justify-between items-center">
           <div>
             <h3 className={`text-xl font-black tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
-              MAPA DE LA REPÚBLICA
+              Mapa de la República
             </h3>
             <p className={`text-xs font-semibold ${isLight ? 'text-blue-700' : 'text-sky-400'}`}>
               República del Sur — 8 provincias contiguas
@@ -340,14 +340,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                 <StatBar label="PBI provincial" value={selectedProvince.economy.gdp} color="emerald" />
               </div>
 
-              {/* Panel de Acciones Presidenciales en la Provincia (Item 3) */}
+              {/* Panel de acciones presidenciales en la provincia */}
               <div className={`p-4 rounded-2xl border space-y-2.5 ${
                 isLight ? 'bg-blue-50/70 border-blue-200' : 'bg-[#1E293B] border-blue-500/30'
               }`}>
                 <h4 className={`font-bold text-xs flex items-center gap-1.5 uppercase tracking-wider ${
                   isLight ? 'text-blue-900' : 'text-sky-300'
                 }`}>
-                  <span>🏛️</span> Acciones Directas del Ejecutivo en {selectedProvince.name}
+                  <span>🏛️</span> Acciones directas del Ejecutivo en {selectedProvince.name}
                 </h4>
 
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
