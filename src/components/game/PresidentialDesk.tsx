@@ -129,11 +129,11 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
   const weatherCondition = calendar.weatherCondition ?? 'despejado';
   const fortnight = calendar.fortnight ?? 1;
 
-  // Filtro de luz ambiental sobre toda la escena
+  // Filtros de iluminación fotográfica fotorrealista sobre la escena completa
   const timeOfDayFilterClass: Record<string, string> = {
-    mañana: 'brightness-[0.98] contrast-[1.02]',
-    tarde: 'brightness-[0.90] contrast-[1.08] sepia-[0.15]',
-    noche: 'brightness-[0.65] contrast-[1.25]',
+    mañana: 'brightness-[1.0] contrast-[1.0]',
+    tarde: 'brightness-[0.90] contrast-[1.08] sepia-[0.12] hue-rotate-[-5deg]',
+    noche: 'brightness-[0.70] contrast-[1.20] saturate-[0.85] hue-rotate-[-10deg]',
   };
   const activeTimeFilter = timeOfDayFilterClass[timeOfDay] ?? 'brightness-[0.95]';
 
@@ -180,42 +180,14 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         </div>
       </div>
 
-      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON EFECTOS DELIMITADOS A LA VENTANA Y NOCHE OSCURA ─── */}
+      {/* ─── 2. ESCRITORIO POINT-AND-CLICK CON FOTO IMPRESA LIMPIA Y LUZ FOTORREALISTA (SIN RECTÁNGULOS SOBREPUESTOS) ─── */}
       <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-950 select-none">
-        {/* Imagen de Fondo del Escritorio */}
+        {/* Imagen de Fondo del Escritorio con Filtro de Luz Ambiental */}
         <img
           src="/presidential-desk.jpg"
           alt="Escritorio Presidencial"
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
-
-        {/* 🪟 CAPA DELIMITADA A LA VENTANA REAL (esquina superior derecha, entre cortinas) */}
-        <div className="absolute top-[2%] right-[3%] w-[34%] h-[46%] overflow-hidden pointer-events-none">
-          {/* Noche: la ventana se oscurece porque afuera es de noche */}
-          {timeOfDay === 'noche' && (
-            <div className="absolute inset-0 bg-[#0a0f1a]/80 transition-all duration-700" />
-          )}
-
-          {/* Atardecer: tinte cálido dorado en la ventana */}
-          {timeOfDay === 'tarde' && (
-            <div className="absolute inset-0 bg-amber-900/25 mix-blend-multiply transition-all duration-700" />
-          )}
-
-          {/* Lluvia: ventana empañada y oscurecida */}
-          {weatherCondition === 'lluvia' && (
-            <div className="absolute inset-0 bg-slate-700/25 backdrop-blur-[0.5px] transition-all" />
-          )}
-
-          {/* Tormenta: ventana muy oscura por nubes densas */}
-          {weatherCondition === 'tormenta' && (
-            <div className="absolute inset-0 bg-slate-900/40 transition-all" />
-          )}
-
-          {/* Niebla: ventana con bruma difusa */}
-          {weatherCondition === 'niebla' && (
-            <div className="absolute inset-0 backdrop-blur-[2px] bg-white/15 transition-all" />
-          )}
-        </div>
 
         {/* HOTSPOTS INTERACTIVOS DE OBJETOS PRESENTES */}
         {visibleObjects.map((obj) => {
