@@ -85,7 +85,7 @@ export const HemerotecaModal: React.FC<HemerotecaModalProps> = ({
 
         {/* Modal de Tapa Completa en Zoom / Detalle */}
         {currentIssue && (
-          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-fadeIn">
             <div className="relative w-full max-w-2xl p-6 rounded-2xl bg-[#f4ebd9] text-slate-900 border-4 border-[#d6c7a1] shadow-2xl font-serif max-h-[90vh] overflow-y-auto">
               <button
                 type="button"

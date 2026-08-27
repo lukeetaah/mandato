@@ -44,22 +44,22 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`${theme === 'light' ? 'bg-white border-slate-200 text-slate-900 shadow-sm' : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC]'} border-b z-20 transition-colors`}>
+      <header className={`${theme === 'light' ? 'bg-[#FFF9EF] border-[#D7C6AD] text-[#312A22] shadow-sm' : 'bg-[#161B22] border-[#30363D] text-[#F8FAFC]'} border-b z-20 transition-colors`}>
         <div className="min-h-16 px-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <h1 className={`text-xl font-black tracking-tight flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
+          <h1 className={`text-xl font-black tracking-tight flex items-center gap-2 ${theme === 'light' ? 'text-[#312A22]' : 'text-[#F8FAFC]'}`}>
             <span className="text-[#3B82F6]">🏛️</span> MI MANDATO
           </h1>
           <div className="hidden sm:flex items-center gap-2 text-xs">
             <Badge variant="slate">📅 {monthName} {calendar.year}</Badge>
             <Badge variant="gold">{calendar.season}</Badge>
-            <span className={theme === 'light' ? 'text-slate-500 font-medium' : 'text-[#94A3B8] font-medium'}>Turno {turn}</span>
+            <span className={theme === 'light' ? 'text-[#6B5B4A] font-medium' : 'text-[#94A3B8] font-medium'}>Turno {turn}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4 text-xs shrink-0 font-sans">
           <div className="hidden md:flex items-center gap-2">
-            <span className={`font-bold ${theme === 'light' ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{character.name} {character.surname}</span>
+            <span className={`font-bold ${theme === 'light' ? 'text-[#312A22]' : 'text-[#F8FAFC]'}`}>{character.name} {character.surname}</span>
             <Badge variant="sky">{CAREER_LABELS[character.career]}</Badge>
           </div>
           <div className="flex items-center gap-4 font-bold">
@@ -82,7 +82,7 @@ export const Header: React.FC = () => {
                 ? 'bg-amber-100/80 border-amber-300 text-amber-900 hover:bg-amber-200'
                 : 'bg-[#1E293B] border-[#475569] text-amber-300 hover:bg-[#334155]'
             }`}
-            title={theme === 'light' ? 'Cambiar a Modo Oscuro 🌙' : 'Cambiar a Modo Claro ☀️'}
+            title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
             aria-label="Cambiar tema de color"
           >
             {theme === 'light' ? '☀️' : '🌙'}
@@ -112,7 +112,7 @@ export const Header: React.FC = () => {
           setIsOptionsOpen(false);
           setShowRestartConfirm(false);
         }}
-        title="Opciones de Partida"
+        title="Opciones de partida"
       >
         <div className="space-y-4 font-sans text-xs">
           {saveNotification && (

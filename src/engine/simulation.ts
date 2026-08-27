@@ -1,6 +1,7 @@
 import type {
   GameState,
   Character,
+  DecisionChoice,
   Decision,
   DelayedEffect,
   GameEvent,
@@ -12,9 +13,10 @@ import type {
   DeskObjectType,
   Effects,
   AnnualDocumentaryReport,
+  CharacterLore,
 } from './types';
 import { SAVE_VERSION } from './types';
-import { createRng, chance, shuffle, pick } from './rng';
+import { createRng, random, chance, shuffle, pick } from './rng';
 import { PROVINCES, DEFAULT_PARTIES, createDefaultReputation, createDefaultNation } from './constants';
 import { advanceActorWorld, createInitialActors, recordActorMemory } from './actors';
 import { createInitialMedia, createInitialSocialMedia } from './media';
@@ -67,6 +69,31 @@ const ERA_QUOTES = [
 ];
 
 const clamp = (value: number, max: number = 100) => Math.max(0, Math.min(max, value));
+
+function buildDefaultLore(character: Partial<Character>): CharacterLore {
+  const fullName = `${character.name ?? 'Patricio'} ${character.surname ?? 'Soto'}`;
+  return {
+    personality: 'Pragmático en público y más idealista de lo que admite ante su gabinete.',
+    motivation: 'Quiere demostrar que una persona común puede ocupar el poder sin ser devorada por él.',
+    strengths: ['Adaptabilidad', 'lectura del humor social', 'capacidad de trabajo'],
+    weaknesses: ['Equipo todavía inestable', 'biografía pública poco probada', 'presión por definirse rápido'],
+    powerRelationship: 'Todavía aprende a distinguir entre autoridad legítima y simple obediencia.',
+    moneyRelationship: 'Sabe que el dinero condiciona, pero no quiere que sea el idioma central del mandato.',
+    peopleRelationship: 'Necesita construir una relación directa con la población antes de que otros narren su gobierno.',
+    institutionRelationship: 'Busca respetar las reglas, aunque la crisis le exige velocidad.',
+    familyStory: `${fullName} llega a la presidencia con una familia de bajo perfil y una vida previa menos blindada que la de sus rivales.`,
+    parents: 'Una familia trabajadora que prefirió mantenerse fuera de la exposición pública.',
+    originClass: 'Clase media urbana de la República del Sur.',
+    childhoodEvent: 'Una crisis económica familiar le enseñó que las grandes decisiones nacionales siempre terminan sentadas a la mesa chica.',
+    adultTurningPoint: 'Una gestión local difícil lo convirtió en figura nacional cuando resolvió un conflicto que otros preferían patear.',
+    politicalOrigin: 'Entró a la política por militancia territorial y terminó conduciendo una coalición de emergencia.',
+    pathToPresidency: 'Llegó al balotaje como candidato de equilibrio en un país cansado de promesas absolutas.',
+    mandateGoal: 'Ordenar el país sin romper los lazos sociales que todavía lo mantienen unido.',
+    fear: 'Convertirse en una firma más dentro de un sistema que borra biografías.',
+    personalContradiction: 'Quiere escuchar a todos, pero sabe que gobernar también implica dejar heridos.',
+    signaturePhrase: 'Gobernar es hacerse cargo de lo que no entra en campaña.',
+  };
+}
 
 function historyId(type: string, familyId: string, turn: number, ordinal: number = 0): string {
   return `history-${type}-${familyId}-${turn}-${ordinal}`;
@@ -219,6 +246,89 @@ function updateSectorTrustMemory(
   return next;
 }
 
+function buildChoiceResolutionLog(
+  state: GameState,
+  decision: Decision,
+  choice: DecisionChoice,
+  familyId: string,
+  causeKey: string,
+  parentHistoryId: string,
+): LogEntry {
+  const systemsAffected: string[] = [];
+  if (choice.effects.national?.economy) systemsAffected.push('economía');
+  if (choice.effects.national?.society) systemsAffected.push('sociedad');
+  if (choice.effects.national?.governance) systemsAffected.push('instituciones');
+  if (choice.effects.character) systemsAffected.push('presidente');
+  if (choice.effects.reputation) systemsAffected.push('relaciones políticas');
+
+  const reputationMoves = Object.entries(choice.effects.reputation ?? {});
+  const support = reputationMoves.filter(([, value]) => (value ?? 0) > 0).map(([key]) => key.replace(/-/g, ' '));
+  const resistance = reputationMoves.filter(([, value]) => (value ?? 0) < 0).map(([key]) => key.replace(/-/g, ' '));
+  const delayedText = choice.delayedEffects.length > 0
+    ? 'Una parte de la medida queda fuera de cuadro: puede reaparecer cuando cambie el clima político.'
+    : 'No queda una consecuencia diferida directa, pero la decisión entra en la memoria del mandato.';
+  const regionalFocus = [...state.provinces]
+    .sort((a, b) => Math.abs(b.socialMood) - Math.abs(a.socialMood))[0];
+  const regionalText = regionalFocus
+    ? `En ${regionalFocus.name}, la noticia se procesa según el humor social de la región: nadie la recibe como un trámite aislado.`
+    : 'En las regiones, la medida empieza a encontrar lecturas propias.';
+  const supportText = support.length > 0 ? `Gana aire entre ${support.slice(0, 3).join(', ')}.` : '';
+  const resistanceText = resistance.length > 0 ? `Despierta resistencia en ${resistance.slice(0, 3).join(', ')}.` : '';
+  const effectText = (() => {
+    const economy = choice.effects.national?.economy ?? {};
+    const society = choice.effects.national?.society ?? {};
+    const governance = choice.effects.national?.governance ?? {};
+    const character = choice.effects.character ?? {};
+    const parts: string[] = [];
+    if (economy.reserves) parts.push(economy.reserves > 0 ? 'el Banco Central gana aire' : 'las reservas pagan parte del costo');
+    if (economy.inflation) parts.push(economy.inflation > 0 ? 'los precios sienten más presión' : 'la inflación recibe una señal de contención');
+    if (economy.debt) parts.push(economy.debt > 0 ? 'la deuda queda más pesada' : 'la deuda afloja levemente');
+    if (society.trust) parts.push(society.trust > 0 ? 'la confianza social mejora' : 'la confianza social se erosiona');
+    if (society.socialConflicts) parts.push(society.socialConflicts > 0 ? 'la calle queda más sensible' : 'la conflictividad baja un cambio');
+    if (governance.institutionality) parts.push(governance.institutionality > 0 ? 'las instituciones salen fortalecidas' : 'la institucionalidad absorbe un golpe');
+    if (governance.corruption) parts.push(governance.corruption > 0 ? 'crece la sospecha de opacidad' : 'la percepción de corrupción retrocede');
+    if (character.stress) parts.push(character.stress > 0 ? 'tu cuerpo carga más presión' : 'tu estrés baja por primera vez en días');
+    if (character.health) parts.push(character.health > 0 ? 'tu salud presidencial se recupera' : 'tu salud paga el precio de la medida');
+    if (character.popularity) parts.push(character.popularity > 0 ? 'tu imagen pública gana margen' : 'tu popularidad pierde piso');
+    return parts.length > 0 ? `En términos concretos, ${parts.slice(0, 4).join(', ')}.` : '';
+  })();
+  const fallbackEmotion = (() => {
+    if (choice.effects.character?.stress && choice.effects.character.stress > 0) return 'La medida sale firmada, pero no gratis: el costo también queda en tu cara.';
+    if (choice.effects.character?.popularity && choice.effects.character.popularity < 0) return 'La decisión ordena una parte del país y abre una deuda con la opinión pública.';
+    if ((choice.effects.national?.economy?.reserves ?? 0) < 0) return 'Compraste tiempo con reservas: ahora habrá que demostrar que valía la pena gastarlas.';
+    if ((choice.effects.national?.society?.trust ?? 0) > 0) return 'Por un momento, la política vuelve a parecer capaz de producir alivio.';
+    if ((choice.effects.national?.governance?.corruption ?? 0) > 0) return 'El resultado funciona, pero deja un olor que la prensa va a seguir.';
+    if (resistance.length > support.length) return 'No fue una firma neutral: alguien ya empezó a organizar la resistencia.';
+    if (support.length > 0) return 'La medida no resuelve el país, pero te compra una mesa menos hostil para la próxima discusión.';
+    return 'La decisión entra en circulación y cambia el tablero de una forma que recién ahora podés medir.';
+  })();
+
+  return {
+    id: historyId('resolution', familyId, state.turn, state.decisionHistory.length),
+    familyId,
+    parentId: parentHistoryId,
+    sourceDecisionId: decision.id,
+    sourceChoiceId: choice.id,
+    causeKey,
+    lifecycle: 'resuelto',
+    turn: state.turn,
+    type: 'system',
+    title: `Resolución: ${choice.label}`,
+    description: [
+      systemsAffected.length > 0
+        ? `La firma empieza a moverse sobre ${systemsAffected.join(', ')}.`
+        : 'La firma empieza a moverse por el sistema político.',
+      supportText,
+      resistanceText,
+      effectText,
+      regionalText,
+      delayedText,
+    ].filter(Boolean).join(' '),
+    emotionalText: choice.emotionalImpact ?? fallbackEmotion,
+    systemsAffected,
+  };
+}
+
 function countryPressure(state: Pick<GameState, 'nation' | 'character' | 'reputation'>): number {
   const { economy, society, governance } = state.nation;
   return Math.round(
@@ -230,6 +340,95 @@ function countryPressure(state: Pick<GameState, 'nation' | 'character' | 'reputa
     + Math.max(0, governance.institutionality < 38 ? 12 : 0)
     + Math.max(0, 35 - state.reputation.trabajadores) * 0.2,
   );
+}
+
+function hashText(value: string): number {
+  return value.split('').reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619), 2166136261) >>> 0;
+}
+
+function mergeEffects(a: Effects, b: Effects): Effects {
+  const mergeRecord = <T extends string>(left?: Partial<Record<T, number>>, right?: Partial<Record<T, number>>) => {
+    const result: Partial<Record<T, number>> = { ...(left ?? {}) };
+    for (const [key, value] of Object.entries(right ?? {}) as Array<[T, number]>) {
+      result[key] = (result[key] ?? 0) + value;
+    }
+    return result;
+  };
+  return {
+    national: {
+      economy: mergeRecord(a.national?.economy, b.national?.economy),
+      society: mergeRecord(a.national?.society, b.national?.society),
+      governance: mergeRecord(a.national?.governance, b.national?.governance),
+    },
+    reputation: mergeRecord(a.reputation, b.reputation),
+    character: mergeRecord(a.character, b.character),
+  };
+}
+
+function buildContextualOutcome(state: GameState, decision: Decision, choice: DecisionChoice): { log: LogEntry; effects: Effects } {
+  const rng = createRng(state.seed + state.turn * 9301 + hashText(`${decision.id}:${choice.id}`));
+  const pressure = countryPressure(state);
+  const traits = state.character.traits;
+  const traitSupport = (traits.strategy + traits.oratory + traits.charisma + traits.honesty) / 400;
+  const stabilitySupport = Math.max(0, 1 - pressure / 100);
+  const resourceSupport = state.nation.economy.reserves / 100;
+  const riskPenalty = Math.min(0.25, choice.preview.risks.length * 0.06 + choice.delayedEffects.length * 0.05 + (decision.urgency === 'critica' ? 0.08 : 0));
+  const successChance = Math.max(0.18, Math.min(0.82, 0.18 + traitSupport * 0.34 + stabilitySupport * 0.22 + resourceSupport * 0.14 - riskPenalty));
+  const roll = random(rng);
+  const outcome: 'favorable' | 'mixto' | 'adverso' = roll < successChance ? 'favorable' : roll < successChance + 0.24 ? 'mixto' : 'adverso';
+
+  const category = decision.category;
+  let effects: Effects;
+  if (outcome === 'favorable') {
+    effects = category === 'economico'
+      ? { national: { economy: { reserves: 2, inflation: -1 }, society: { trust: 1 } }, character: { popularity: 1 } }
+      : category === 'social'
+      ? { national: { society: { trust: 2, socialConflicts: -2 } }, character: { popularity: 1 } }
+      : category === 'mediatico'
+      ? { reputation: { prensa: 3 }, character: { popularity: 2, stress: -1 } }
+      : { national: { governance: { institutionality: 2 }, society: { trust: 1 } }, character: { stress: -1 } };
+  } else if (outcome === 'adverso') {
+    effects = category === 'economico'
+      ? { national: { economy: { reserves: -2, inflation: 2 }, society: { trust: -1 } }, character: { stress: 2 } }
+      : category === 'social'
+      ? { national: { society: { trust: -2, socialConflicts: 3 } }, character: { stress: 2 } }
+      : category === 'mediatico'
+      ? { reputation: { prensa: -4 }, character: { popularity: -2, stress: 2 } }
+      : { national: { governance: { institutionality: -2 }, society: { polarization: 2 } }, character: { stress: 2 } };
+  } else {
+    effects = category === 'economico'
+      ? { national: { economy: { reserves: -1 }, society: { trust: 1 } } }
+      : category === 'social'
+      ? { national: { society: { trust: 1, socialConflicts: 1 } } }
+      : category === 'mediatico'
+      ? { reputation: { prensa: 2 }, character: { stress: 1 } }
+      : { national: { governance: { institutionality: 1 }, society: { polarization: 1 } } };
+  }
+
+  const contextText = `Probabilidad contextual de buen desenlace: ${Math.round(successChance * 100)}%. Influyeron tus rasgos, reservas, presión del país, urgencia y riesgos acumulados.`;
+  const title = outcome === 'favorable' ? 'La implementación salió mejor de lo esperado' : outcome === 'adverso' ? 'La implementación tropezó' : 'La implementación dejó un resultado mixto';
+  const description = outcome === 'favorable'
+    ? `La medida encontró una ventana de apoyo y ejecución. ${contextText}`
+    : outcome === 'adverso'
+    ? `La medida chocó con resistencias, timing o fragilidad acumulada. ${contextText}`
+    : `La medida funcionó en una parte del tablero, pero abrió otro frente. ${contextText}`;
+  return {
+    effects,
+    log: {
+      id: historyId('contextual-outcome', getDecisionFamilyId(decision), state.turn, state.decisionHistory.length),
+      familyId: getDecisionFamilyId(decision),
+      parentId: historyId('decision', getDecisionFamilyId(decision), state.turn, state.decisionHistory.length),
+      sourceDecisionId: decision.id,
+      sourceChoiceId: choice.id,
+      lifecycle: 'resuelto',
+      turn: state.turn,
+      type: 'system',
+      title,
+      description,
+      emotionalText: outcome === 'favorable' ? 'Esta vez el país devolvió algo más que costo.' : outcome === 'adverso' ? 'La firma fue tuya; el tropiezo lo puso el contexto.' : 'Ganaste algo, pero el tablero pidió una prenda a cambio.',
+      systemsAffected: ['azar contextual', category],
+    },
+  };
 }
 
 export function isCountryStable(state: Pick<GameState, 'nation' | 'character' | 'reputation'>): boolean {
@@ -500,6 +699,8 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
     ],
     relationships: [],
     backstory: customChar?.backstory ?? 'Comenzó militando en centros universitarios con la convicción de sanear la administración pública.',
+    lore: customChar?.lore ?? buildDefaultLore(customChar ?? {}),
+    avatarId: customChar?.avatarId ?? 'custom',
     hiddenScandals: [],
     beliefs: {
       economy: 0, stateSize: 20, security: 10, education: 40, environment: 20,
@@ -512,9 +713,38 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
   };
 
   const calendar = calculateCalendar(1);
-  const nation = createDefaultNation();
-  const reputation = createDefaultReputation();
+  let nation = createDefaultNation();
+  let reputation = createDefaultReputation();
   const socialMedia = createInitialSocialMedia();
+
+  const charismaShift = Math.round((character.traits.charisma - 60) / 6);
+  const honestyShift = Math.round((character.traits.honesty - 60) / 7);
+  const empathyShift = Math.round((character.traits.empathy - 55) / 7);
+  const strategyShift = Math.round((character.traits.strategy - 55) / 8);
+  const oratoryShift = Math.round((character.traits.oratory - 55) / 8);
+
+  character.popularity = clamp(character.popularity + charismaShift + Math.max(0, oratoryShift));
+  character.stress = clamp(character.stress - Math.max(0, strategyShift));
+  nation = {
+    ...nation,
+    society: {
+      ...nation.society,
+      trust: clamp(nation.society.trust + honestyShift + empathyShift),
+      polarization: clamp(nation.society.polarization - Math.max(0, oratoryShift)),
+    },
+    governance: {
+      ...nation.governance,
+      institutionality: clamp(nation.governance.institutionality + honestyShift + strategyShift),
+      corruption: clamp(nation.governance.corruption - honestyShift),
+    },
+  };
+  reputation = {
+    ...reputation,
+    prensa: clamp(reputation.prensa + oratoryShift),
+    'clase-media': clamp(reputation['clase-media'] + honestyShift),
+    trabajadores: clamp(reputation.trabajadores + empathyShift),
+    empresarios: clamp(reputation.empresarios + strategyShift),
+  };
 
   const initialStateForHeadlines: any = {
     turn: 1,
@@ -579,10 +809,10 @@ export function createNewGame(seed: number = Date.now(), customChar?: Partial<Ch
         turn: 1,
         type: 'system',
         title: character.idealismo > character.pragmatismo + 15
-          ? `Asunción Presidencial — Mandato Popular`
+          ? `Asunción presidencial: mandato popular`
           : character.pragmatismo > character.idealismo + 15
-          ? `Asunción Presidencial — Alineamiento de Mercado`
-          : `Asunción Presidencial — Pacto Institucional`,
+          ? `Asunción presidencial: alineamiento de mercado`
+          : `Asunción presidencial: pacto institucional`,
         description: character.idealismo > character.pragmatismo + 15
           ? `${character.name} ${character.surname} jura con compromiso social y respaldo popular. La calle celebra la asunción, pero los mercados observan con extrema desconfianza.`
           : character.pragmatismo > character.idealismo + 15
@@ -1037,7 +1267,11 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   const choice = decision.choices.find((c) => c.id === choiceId);
   if (!choice || choice.disabled) return state;
 
-  const updated = applyEffects(state, choice.effects);
+  const isTrialDecision = decision.id.startsWith('trial-');
+  const contextualOutcome = isTrialDecision ? null : buildContextualOutcome(state, decision, choice);
+  const combinedEffects = contextualOutcome ? mergeEffects(choice.effects, contextualOutcome.effects) : choice.effects;
+  let updated = applyEffects(state, choice.effects);
+  if (contextualOutcome) updated = applyEffects(updated, contextualOutcome.effects);
   const familyId = getDecisionFamilyId(decision);
   const causeKey = decision.causeKey ?? getDecisionCauseKey(decision, state);
   const decisionHistoryId = historyId('decision', familyId, state.turn, state.decisionHistory.length);
@@ -1052,7 +1286,6 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
   }));
 
   const remainingPending = state.pendingDecisions.filter((d) => d.id !== decision.id);
-  const isTrialDecision = decision.id.startsWith('trial-');
   const trialConviction = isTrialDecision && choiceId === 'trial-condena';
   const trialDismissed = isTrialDecision && choiceId === 'trial-merito';
   const trialProcessing = isTrialDecision && choiceId === 'trial-inocencia';
@@ -1095,7 +1328,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     description: `Decisión ejecutada: "${choice.label}".`,
     emotionalText: choice.emotionalImpact ?? `Elegiste la opción "${choice.label}". El país absorbe el costo.`,
   };
-  const resolutionLog: LogEntry | null = trialResolution ? {
+  const resolutionLog: LogEntry = trialResolution ? {
     id: historyId('trial-resolution', familyId, state.turn),
     familyId,
     parentId: decisionHistoryId,
@@ -1107,7 +1340,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     title: trialResolution.title,
     description: trialResolution.description,
     emotionalText: trialResolution.emotionalText,
-  } : null;
+  } : buildChoiceResolutionLog(state, decision, choice, familyId, causeKey, decisionHistoryId);
   const trialHeadline: HeadlineItem | null = trialResolution && !trialConviction ? {
     id: `hl-trial-resolution-${state.turn}`,
     outletName: 'Canal 11 Red Federal',
@@ -1153,7 +1386,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
     phase: nextPhase,
     nation: updated.nation,
     reputation: updated.reputation,
-    sectorTrustMemory: updateSectorTrustMemory(state.sectorTrustMemory, choice.effects),
+    sectorTrustMemory: updateSectorTrustMemory(state.sectorTrustMemory, combinedEffects),
     character: isTrialDecision
       ? { ...updated.character, career: 'expresidente', ...(trialConviction ? { stress: 100, popularity: 0 } : {}) }
       : updated.character,
@@ -1179,7 +1412,7 @@ export function executeChoice(state: GameState, decision: Decision, choiceId: st
       parentHistoryId: decision.parentHistoryId,
     }],
     dailyHeadlines: trialHeadline ? [trialHeadline, ...state.dailyHeadlines].slice(0, 12) : state.dailyHeadlines,
-    eventLog: [...state.eventLog, logEntry, ...(resolutionLog ? [resolutionLog] : [])],
+    eventLog: [...state.eventLog, logEntry, resolutionLog, ...(contextualOutcome ? [contextualOutcome.log] : [])],
     updatedAt: Date.now(),
     ...(trialProcessing ? { trialProcessingUntilTurn: state.turn + 4 } : {}),
   };

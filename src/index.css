@@ -15,7 +15,7 @@
 
   body {
     background-color: #0D1117;
-    color: #F8FAFC;
+    color: inherit;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
     margin: 0;
@@ -24,23 +24,114 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-    color: #F8FAFC;
+    color: inherit;
   }
 }
 
-/* Custom panels and cards with 16px borders and high contrast */
-.glass-panel {
-  background-color: #161B22;
-  border: 1px solid #30363D;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+/* Tema oscuro por defecto */
+.theme-dark {
+  color: #F8FAFC;
 }
 
-.glass-panel-gold {
-  background-color: #1E293B;
-  border: 1px solid #F59E0B;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.15);
+/* Tema claro cálido e institucional */
+.theme-light {
+  color: #312A22;
+  background-color: #F5EFEB;
+}
+
+.theme-light .glass-panel {
+  background-color: #FFF9EF;
+  border-color: #D7C6AD;
+  color: #312A22;
+  box-shadow: 0 10px 25px -5px rgba(120, 90, 40, 0.08);
+}
+
+.theme-light .glass-panel-gold {
+  background-color: #FFF7E8;
+  border-color: #D97706;
+  color: #312A22;
+  box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.12);
+}
+
+/* Reescritura semántica de tokens de color dentro de .theme-light para legibilidad perfecta */
+.theme-light .text-slate-100,
+.theme-light .text-slate-200 {
+  color: #1E293B;
+}
+
+.theme-light .text-slate-300 {
+  color: #334155;
+}
+
+.theme-light .text-slate-400 {
+  color: #475569;
+}
+
+.theme-light .text-slate-500 {
+  color: #64748B;
+}
+
+.theme-light .text-amber-200,
+.theme-light .text-amber-300,
+.theme-light .text-amber-400 {
+  color: #B45309;
+}
+
+.theme-light .text-sky-200,
+.theme-light .text-sky-300,
+.theme-light .text-sky-400 {
+  color: #0284C7;
+}
+
+.theme-light .text-rose-200,
+.theme-light .text-rose-300,
+.theme-light .text-rose-400 {
+  color: #E11D48;
+}
+
+.theme-light .text-emerald-200,
+.theme-light .text-emerald-300,
+.theme-light .text-emerald-400 {
+  color: #15803D;
+}
+
+.theme-light .text-purple-200,
+.theme-light .text-purple-300,
+.theme-light .text-purple-400 {
+  color: #7E22CE;
+}
+
+/* Adaptación de fondos oscuros duros en modo claro para conservar estética de papel/documento institucional */
+.theme-light .bg-slate-950,
+.theme-light .bg-slate-900 {
+  background-color: #F7F1E5;
+  border-color: #D7C6AD;
+}
+
+.theme-light .bg-slate-950\/80,
+.theme-light .bg-slate-950\/70,
+.theme-light .bg-slate-950\/60,
+.theme-light .bg-slate-950\/40,
+.theme-light .bg-slate-900\/90,
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/70,
+.theme-light .bg-slate-900\/60,
+.theme-light .bg-slate-900\/40 {
+  background-color: #FAF4EA;
+  border-color: #DECDB5;
+}
+
+.theme-light .bg-slate-800,
+.theme-light .bg-slate-800\/80,
+.theme-light .bg-slate-800\/60 {
+  background-color: #EFE6D5;
+  border-color: #D7C6AD;
+}
+
+.theme-light .border-slate-800,
+.theme-light .border-slate-700,
+.theme-light .border-slate-600 {
+  border-color: #DECDB5;
 }
 
 /* Custom scrollbars */
@@ -53,13 +144,25 @@
   background: #0D1117;
 }
 
+.theme-light ::-webkit-scrollbar-track {
+  background: #F5EFEB;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #30363D;
   border-radius: 8px;
 }
 
+.theme-light ::-webkit-scrollbar-thumb {
+  background: #D7C6AD;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #3B82F6;
+}
+
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: #B45309;
 }
 
 @keyframes miMandatoHeadlineMarquee {
@@ -75,3 +178,4 @@
 .headline-marquee-track:hover {
   animation-play-state: paused;
 }
+

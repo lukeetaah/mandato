@@ -131,6 +131,9 @@ function normalizeStoredGame(value: unknown): GameState | null {
       ? { ...fresh.sectorTrustMemory, ...state.sectorTrustMemory }
       : fresh.sectorTrustMemory,
     annualDocumentaries: Array.isArray(state.annualDocumentaries) ? state.annualDocumentaries : [],
+    character: typeof state.character === 'object' && state.character
+      ? { ...fresh.character, ...state.character, lore: state.character.lore ?? fresh.character.lore, avatarId: state.character.avatarId ?? fresh.character.avatarId }
+      : fresh.character,
     scars: Array.isArray(state.scars)
       ? dedupeNationalScars(state.scars).map((scar) => ({
         ...scar,

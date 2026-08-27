@@ -9,7 +9,7 @@ export interface OnboardingModalProps {
 
 const TOUR_STEPS = [
   {
-    title: '🏛️ Asunción Presidencial — Tu perfil de gobierno',
+    title: 'Asunción presidencial: tu perfil de gobierno',
     content: `Bienvenido a la Presidencia de la República del Sur.
     
 Asumís el poder en un contexto de altísima volatilidad. Tus decisiones iniciales y la orientación ideológica de tu gabinete determinarán cómo reaccionan los sectores clave:
@@ -21,7 +21,7 @@ Asumís el poder en un contexto de altísima volatilidad. Tus decisiones inicial
 • **Si mantenés el centro institucional**: Lográs consensos en el Congreso, pero serás cuestionado por la prensa y la oposición si no definís un rumbo claro.`,
   },
   {
-    title: '📸 El Despacho Presidencial y los canales de entrada',
+    title: 'El despacho presidencial y los canales de entrada',
     content: `En la pestaña **Nación / Despacho** encontrarás la mesa oficial de trabajo.
 
 Los asuntos no llegan por una sola vía:
@@ -30,20 +30,26 @@ Los asuntos no llegan por una sola vía:
 • 📁 **Expedientes**: Proyectos de ley, decretos y solicitudes de presupuesto.
 • ✉️ **Cartas de Gobernadores**: Demandas regionales de coparticipación.
 
-Cada quincena deberás resolver los asuntos urgentes o dejar que tu gabinete tome medidas por defecto antes de presionar **AVANZAR QUINCENA**.`,
+Cada quincena deberás resolver los asuntos urgentes o dejar que tu gabinete tome medidas por defecto antes de presionar **Avanzar quincena**.`,
   },
   {
-    title: '🗺️ Provincias, Vida Personal y Prensa',
+    title: 'Regiones, vida personal y prensa',
     content: `Para gobernar con éxito debés utilizar todos los recursos del Estado:
 
-• 🗺️ **Provincias**: Invertí en infraestructura regional, enviá fuerzas federales o firmá pactos con los gobernadores para asegurar votos en el Senado.
+• 🗺️ **Regiones**: Invertí en infraestructura regional, enviá fuerzas federales o firmá pactos con los gobernadores para asegurar votos en el Senado.
 
 • 👤 **Perfil y Vida**: Gestioná tu salud física y estrés. Podés trasladarte a Olivos, descansar o realizar gestos de austeridad para proteger tu imagen pública.
 
 • 📰 **Prensa y Redes**: Monitoreá la percepción de los medios y el humor social quincena a quincena.`,
   },
   {
-    title: '⚖️ Reglas de Reelección e Indicadores Vitales',
+    title: 'Apariencia y opciones de partida',
+    content: `El juego inicia en modo oscuro para que puedas concentrarte en los indicadores. Si preferís una vista más cálida, tocá el botón de luna o sol en la esquina superior derecha: podés alternar el tema cuando quieras.
+
+El botón **Menú** abre las opciones de partida. Desde ahí guardás, salís al inicio o reiniciás el mandato. No hace falta memorizarlo: ambos controles permanecen visibles durante toda la gestión.`,
+  },
+  {
+    title: 'Reglas de reelección e indicadores vitales',
     content: `No existen decisiones limpias. Cada medida resuelve un problema y genera nuevas tensiones.
 
 **Indicadores críticos**:
@@ -116,7 +122,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                 onClick={onClose}
                 className="px-5 py-2 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs cursor-pointer transition-colors shadow-lg"
               >
-                ¡Asumir el Mandato! ➔
+                Asumir mandato ➔
               </button>
             ) : (
               <button

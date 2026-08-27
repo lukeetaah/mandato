@@ -161,22 +161,32 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
       </button>
 
       {isExpanded && (
-      <div className="glass-panel p-5 rounded-2xl border border-slate-700/80 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950">
+      <div className={`p-5 rounded-2xl border shadow-2xl relative overflow-hidden transition-colors ${
+        isLight
+          ? 'bg-white border-slate-200 text-slate-900'
+          : 'glass-panel border-slate-700/80 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950'
+      }`}>
         
         {/* Encabezado estilo Calendario de Pared y Herramienta de Planificación */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className={`flex flex-wrap items-center justify-between gap-4 pb-4 border-b ${
+          isLight ? 'border-slate-200' : 'border-slate-800'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shadow-inner">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-inner border ${
+              isLight ? 'bg-amber-100/70 border-amber-300' : 'bg-amber-500/10 border-amber-500/30'
+            }`}>
               📅
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black tracking-wider text-slate-100 uppercase">
+                <h3 className={`text-base font-black tracking-wider uppercase ${
+                  isLight ? 'text-slate-900' : 'text-slate-100'
+                }`}>
                   Calendario de pared y planificación
                 </h3>
                 <Badge variant="gold">{calendar.season}</Badge>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 {calendar.monthCycleName} · {MONTH_NAMES[calendar.month - 1]} de {calendar.year} ( Quincena {calendar.fortnight} )
               </p>
             </div>
@@ -184,8 +194,10 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
 
           {/* Selector de Año */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-medium">Año de gestión:</span>
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <span className={`text-xs font-medium ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Año de gestión:</span>
+            <div className={`flex p-1 rounded-xl border ${
+              isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+            }`}>
               {availableYears.map((yr) => (
                 <button
                   key={yr}
@@ -193,7 +205,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                   className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                     selectedYear === yr
                       ? 'bg-amber-400 text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   {yr}
@@ -225,9 +237,15 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                 }}
                 className={`relative group p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[125px] ${
                   isCurrent
-                    ? 'bg-amber-950/40 border-amber-400/90 shadow-lg shadow-amber-500/10 ring-2 ring-amber-400/40'
+                    ? isLight
+                      ? 'bg-amber-50 border-amber-400 shadow-md ring-2 ring-amber-400/50'
+                      : 'bg-amber-950/40 border-amber-400/90 shadow-lg shadow-amber-500/10 ring-2 ring-amber-400/40'
                     : isPast
-                    ? 'bg-slate-950/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900/80'
+                    ? isLight
+                      ? 'bg-slate-50 border-slate-200 hover:border-slate-400 hover:bg-slate-100'
+                      : 'bg-slate-950/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900/80'
+                    : isLight
+                    ? 'bg-slate-100/50 border-slate-200 text-slate-500 hover:border-slate-300'
                     : 'bg-slate-950/30 border-slate-800/40 text-slate-500 hover:border-slate-700/60'
                 }`}
               >
@@ -235,7 +253,13 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs">{seasonIcon}</span>
-                    <span className={`font-black text-xs tracking-wider ${isCurrent ? 'text-amber-300' : isPast ? 'text-slate-200' : 'text-slate-500'}`}>
+                    <span className={`font-black text-xs tracking-wider ${
+                      isCurrent
+                        ? isLight ? 'text-amber-900' : 'text-amber-300'
+                        : isPast
+                        ? isLight ? 'text-slate-800' : 'text-slate-200'
+                        : 'text-slate-500'
+                    }`}>
                       {MONTH_SHORT[idx]}
                     </span>
                   </div>
@@ -243,18 +267,20 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                   {/* Estado del Mes */}
                   {isPast && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                      isLight ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60'
+                      isLight ? 'text-emerald-800 bg-emerald-100 border-emerald-300' : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60'
                     }`}>
                       ✓ {MONTH_SHORT[idx]}
                     </span>
                   )}
                   {isCurrent && (
-                    <span className="flex items-center gap-1 text-[10px] font-extrabold text-amber-300 bg-amber-950 px-1.5 py-0.5 rounded border border-amber-500/50 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Hoy
+                    <span className={`flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded border animate-pulse ${
+                      isLight ? 'text-amber-950 bg-amber-200 border-amber-400' : 'text-amber-300 bg-amber-950 border-amber-500/50'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Hoy
                     </span>
                   )}
                   {isFuture && (
-                    <span className="text-[10px] text-slate-600 font-medium">
+                    <span className={`text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>
                       Próximo
                     </span>
                   )}
@@ -262,7 +288,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
 
                 {/* Descriptor dinámico del mes */}
                 {dynamicDescriptor && (
-                  <div className="text-[10px] text-slate-400 truncate my-1">
+                  <div className={`text-[10px] truncate my-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                     {dynamicDescriptor}
                   </div>
                 )}
@@ -270,10 +296,18 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                 {/* Píldoras de tensión a simple vista */}
                 {isCurrent && (
                   <div className="flex flex-wrap gap-1 my-1">
-                    <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${nation.economy.inflation > 50 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-slate-900 text-slate-400'}`}>
+                    <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${
+                      nation.economy.inflation > 50
+                        ? isLight ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-rose-950 text-rose-300 border border-rose-800'
+                        : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-900 text-slate-400'
+                    }`}>
                       ⚠️ Economía
                     </span>
-                    <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${nation.society.socialConflicts > 45 ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-slate-900 text-slate-400'}`}>
+                    <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${
+                      nation.society.socialConflicts > 45
+                        ? isLight ? 'bg-amber-100 text-amber-950 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-800'
+                        : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-900 text-slate-400'
+                    }`}>
                       🟡 Protestas
                     </span>
                   </div>
@@ -281,7 +315,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
 
                 {/* Pronóstico futuro en tarjeta */}
                 {isFuture && summary.forecasts.length > 0 && (
-                  <div className="text-[9px] text-sky-400 font-semibold truncate my-1">
+                  <div className={`text-[9px] font-semibold truncate my-1 ${isLight ? 'text-sky-800' : 'text-sky-400'}`}>
                     {summary.forecasts[0]}
                   </div>
                 )}
@@ -289,22 +323,28 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
                 {/* Badges de Actividad en el Mes */}
                 <div className="mt-auto pt-1.5 flex flex-wrap gap-1 items-center">
                   {summary.decisionsCount > 0 && (
-                    <span className="text-[10px] bg-sky-950/80 text-sky-300 border border-sky-800/80 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1" title="Decisiones ejecutadas">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border ${
+                      isLight ? 'bg-sky-100 text-sky-900 border-sky-300' : 'bg-sky-950/80 text-sky-300 border-sky-800/80'
+                    }`} title="Decisiones ejecutadas">
                       📋 {summary.decisionsCount}
                     </span>
                   )}
                   {summary.eventsCount > 0 && (
-                    <span className="text-[10px] bg-rose-950/80 text-rose-300 border border-rose-800/80 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1" title="Acontecimientos especiales">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border ${
+                      isLight ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-rose-950/80 text-rose-300 border-rose-800/80'
+                    }`} title="Acontecimientos especiales">
                       ⚡ {summary.eventsCount}
                     </span>
                   )}
                   {summary.electionsCount > 0 && (
-                    <span className="text-[10px] bg-purple-950/80 text-purple-300 border border-purple-800/80 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1" title="Jornada electoral">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border ${
+                      isLight ? 'bg-purple-100 text-purple-900 border-purple-300' : 'bg-purple-950/80 text-purple-300 border-purple-800/80'
+                    }`} title="Jornada electoral">
                       🗳️ {summary.electionsCount}
                     </span>
                   )}
                   {!summary.hasActivity && isPast && (
-                    <span className="text-[10px] text-slate-600 italic">Sin novedades</span>
+                    <span className={`text-[10px] italic ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>Sin novedades</span>
                   )}
                 </div>
 
@@ -314,7 +354,6 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = () => {
           })}
         </div>
       </div>
-
       )}
 
       {/* Modal de Inspección del Mes (Timeline compacto con tarjetas e interactividad) */}

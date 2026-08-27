@@ -7,10 +7,10 @@ export const Sidebar: React.FC = () => {
   const pendingDecisionsCount = useGameStore((s) => s.gameState?.pendingDecisions.length ?? 0);
 
   const tabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
-    { id: 'dashboard', label: 'Nación & Decisiones', icon: '🏛️', badge: pendingDecisionsCount },
+    { id: 'dashboard', label: 'Nación y decisiones', icon: '🏛️', badge: pendingDecisionsCount },
     { id: 'calendario', label: 'Calendario', icon: '📅' },
     { id: 'camino', label: 'Trayectoria política', icon: '🛤️' },
-    { id: 'provincias', label: 'Provincias', icon: '🗺️' },
+    { id: 'provincias', label: 'Regiones', icon: '🗺️' },
     { id: 'personaje', label: 'Perfil y vida', icon: '👤' },
     { id: 'prensa', label: 'Prensa y redes', icon: '📰' },
     { id: 'historial', label: 'Historial del mandato', icon: '📜' },
@@ -24,7 +24,7 @@ export const Sidebar: React.FC = () => {
     <>
       {/* ─── DESKTOP SIDEBAR ─── */}
       <aside className={`hidden md:flex ${sidebarCollapsed ? 'w-[4.5rem]' : 'w-64'} shrink-0 ${
-        isLight ? 'bg-white border-r border-slate-200 shadow-sm' : 'bg-[#161B22] border-r border-[#30363D] shadow-lg'
+        isLight ? 'bg-[#FFF9EF] border-r border-[#D7C6AD] shadow-sm' : 'bg-[#161B22] border-r border-[#30363D] shadow-lg'
       } p-4 flex-col gap-3 transition-[width] duration-200`}>
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-2`}>
           {!sidebarCollapsed && <span className={`px-2 text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-slate-400' : 'text-[#94A3B8]'}`}>Navegación</span>}
@@ -79,7 +79,7 @@ export const Sidebar: React.FC = () => {
 
       {/* ─── MOBILE BOTTOM BAR ─── */}
       <nav className={`md:hidden fixed bottom-0 inset-x-0 z-40 backdrop-blur-md border-t flex items-center justify-around px-2 py-2 shadow-2xl ${
-        isLight ? 'bg-white/95 border-slate-200' : 'bg-[#161B22]/95 border-[#30363D]'
+        isLight ? 'bg-[#FFF9EF]/95 border-[#D7C6AD]' : 'bg-[#161B22]/95 border-[#30363D]'
       }`}>
         {mobileTabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -107,4 +107,3 @@ export const Sidebar: React.FC = () => {
     </>
   );
 };
-

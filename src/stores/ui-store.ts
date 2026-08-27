@@ -23,7 +23,8 @@ const initialSidebarCollapsed = typeof window !== 'undefined'
   ? window.localStorage.getItem('mi-mandato-sidebar-collapsed') === 'true'
   : false;
 
-const initialTheme: ThemeMode = (typeof window !== 'undefined' && window.localStorage.getItem('mi-mandato-theme') as ThemeMode) || 'light';
+// El modo oscuro es la experiencia base; si el jugador eligió otro, respetamos su preferencia.
+const initialTheme: ThemeMode = (typeof window !== 'undefined' && window.localStorage.getItem('mi-mandato-theme') as ThemeMode) || 'dark';
 
 export const useUIStore = create<UIStore>((set) => ({
   activeTab: 'dashboard',

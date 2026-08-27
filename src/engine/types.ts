@@ -156,6 +156,28 @@ export interface CharacterTraits {
   strategy: number;
 }
 
+export interface CharacterLore {
+  personality: string;
+  motivation: string;
+  strengths: string[];
+  weaknesses: string[];
+  powerRelationship: string;
+  moneyRelationship: string;
+  peopleRelationship: string;
+  institutionRelationship: string;
+  familyStory: string;
+  parents: string;
+  originClass: string;
+  childhoodEvent: string;
+  adultTurningPoint: string;
+  politicalOrigin: string;
+  pathToPresidency: string;
+  mandateGoal: string;
+  fear: string;
+  personalContradiction: string;
+  signaturePhrase: string;
+}
+
 export interface FamilyMember {
   id: string;
   name: string;
@@ -211,6 +233,8 @@ export interface Character {
   family: FamilyMember[];
   relationships: Relationship[];
   backstory: string;
+  lore?: CharacterLore;
+  avatarId?: string;
   hiddenScandals: Scandal[];
   beliefs: IdeologyProfile;
   career: CareerStage;
@@ -585,6 +609,12 @@ export interface Legacy {
   title: string;
   epitaph: string;
   score: number;
+  scoreBreakdown: Array<{ label: string; value: number; note: string }>;
+  narrative: string;
+  achievements: string[];
+  mistakes: string[];
+  affectedRegions: string[];
+  memorableMoments: string[];
 }
 
 // ─────────────────────────────────────────────

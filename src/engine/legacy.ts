@@ -1,5 +1,8 @@
 import type { GameState, Legacy, LegacyArchetype } from './types';
 
+const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
+
 export function calculateLegacy(state: GameState): Legacy {
   const { character, patterns, nation, reputation } = state;
   let archetype: LegacyArchetype = 'el-pragmatico';
@@ -81,13 +84,92 @@ export function calculateLegacy(state: GameState): Legacy {
     epitaph = 'Se retiró en silencio al concluir su mandato. Veinte años después, pocos recuerdan en qué década gobernó.';
   }
 
-  const scoreBase = (character.popularity * 0.4) + (nation.society.trust * 0.3) + (nation.governance.institutionality * 0.3);
+  const economyScore = clamp(average([
+    nation.economy.reserves,
+    nation.economy.gdp,
+    nation.economy.production,
+    nation.economy.investment,
+    100 - Math.min(100, nation.economy.inflation),
+    100 - Math.min(100, nation.economy.debt),
+  ]));
+  const socialScore = clamp(average([
+    nation.society.trust,
+    nation.society.health,
+    nation.society.education,
+    nation.society.employment,
+    100 - nation.society.poverty,
+    100 - nation.society.socialConflicts,
+  ]));
+  const institutionalScore = clamp(average([
+    nation.governance.institutionality,
+    nation.governance.internationalImage,
+    100 - nation.governance.corruption,
+  ]));
+  const personalScore = clamp(average([
+    character.popularity,
+    character.health,
+    100 - character.stress,
+    Math.max(...Object.values(reputation)),
+  ]));
+  const completionScore = state.turn >= 96 || state.phase === 'opposition'
+    ? 100
+    : state.phase === 'gameover'
+    ? Math.max(15, Math.min(70, state.turn))
+    : Math.min(90, Math.round((state.turn / 96) * 100));
+  const consequencePenalty = Math.min(18, state.persistentConsequences.filter((c) => !c.resolved).length * 2);
+  const crisisPenalty = Math.min(16, state.eventLog.filter((entry) => entry.type === 'scandal' || entry.title.toLowerCase().includes('crisis')).length);
+  const scoreBase = (
+    economyScore * 0.24
+    + socialScore * 0.24
+    + institutionalScore * 0.22
+    + personalScore * 0.16
+    + completionScore * 0.14
+    - consequencePenalty
+    - crisisPenalty
+  );
+
+  const decisionLogs = state.eventLog.filter((entry) => entry.type === 'decision');
+  const eventLogs = state.eventLog.filter((entry) => entry.type === 'event' || entry.type === 'scandal' || entry.type === 'election');
+  const achievements = [
+    nation.economy.reserves >= 55 ? 'Sostuvo reservas suficientes para evitar una corrida permanente.' : null,
+    nation.society.trust >= 55 ? 'Reconstruyó parte de la confianza social.' : null,
+    nation.governance.institutionality >= 60 ? 'Dejó instituciones más fuertes que al asumir.' : null,
+    character.health >= 65 && character.stress <= 55 ? 'Llegó al final sin quebrar su salud presidencial.' : null,
+    state.scars.length > 0 ? `Atravesó ${state.scars.length} cicatriz${state.scars.length === 1 ? '' : 'es'} nacional${state.scars.length === 1 ? '' : 'es'} sin borrar su memoria.` : null,
+  ].filter(Boolean) as string[];
+  const mistakes = [
+    nation.economy.inflation >= 65 ? 'La inflación siguió marcando la vida cotidiana.' : null,
+    nation.governance.corruption >= 65 ? 'La percepción de corrupción quedó demasiado alta.' : null,
+    nation.society.socialConflicts >= 65 ? 'La calle terminó más caliente que el despacho.' : null,
+    character.stress >= 75 ? 'El costo físico del poder se volvió parte del resultado.' : null,
+    state.persistentConsequences.some((c) => !c.resolved) ? 'Dejó consecuencias pendientes que otra administración tendrá que administrar.' : null,
+  ].filter(Boolean) as string[];
+  const affectedRegions = [...state.provinces]
+    .sort((a, b) => Math.abs(b.socialMood) + b.scars.length * 8 - (Math.abs(a.socialMood) + a.scars.length * 8))
+    .slice(0, 3)
+    .map((province) => province.name);
+  const memorableMoments = eventLogs.slice(-5).reverse().map((entry) => entry.title);
+  const decisionText = decisionLogs.length > 0
+    ? `Tomó ${decisionLogs.length} decisión${decisionLogs.length === 1 ? '' : 'es'} registrada${decisionLogs.length === 1 ? '' : 's'} y dejó ${state.activeDelayedEffects.length + state.persistentConsequences.filter((c) => !c.resolved).length} asunto${state.activeDelayedEffects.length + state.persistentConsequences.filter((c) => !c.resolved).length === 1 ? '' : 's'} abierto${state.activeDelayedEffects.length + state.persistentConsequences.filter((c) => !c.resolved).length === 1 ? '' : 's'}.`
+    : 'Su mandato terminó casi sin decisiones registradas.';
+  const narrative = `Durante su presidencia, ${character.name} ${character.surname} gobernó durante ${Math.floor(state.turn / 2)} meses con una popularidad final de ${Math.round(character.popularity)}%. ${decisionText} El país terminó con reservas en ${Math.round(nation.economy.reserves)}%, confianza social en ${Math.round(nation.society.trust)}% e institucionalidad en ${Math.round(nation.governance.institutionality)}%. ${achievements[0] ?? mistakes[0] ?? 'Su paso por el poder dejó una marca moderada, más visible en el archivo que en los balcones.'}`;
 
   return {
     archetype,
     title,
     epitaph,
-    score: Math.min(100, Math.max(0, Math.round(scoreBase))),
+    score: clamp(scoreBase),
+    scoreBreakdown: [
+      { label: 'Economía', value: economyScore, note: 'Reservas, inflación, deuda, producción e inversión.' },
+      { label: 'Sociedad', value: socialScore, note: 'Confianza, salud, educación, empleo, pobreza y conflictividad.' },
+      { label: 'Instituciones', value: institutionalScore, note: 'Institucionalidad, corrupción e imagen internacional.' },
+      { label: 'Presidente', value: personalScore, note: 'Popularidad, salud, estrés y mejor relación sectorial.' },
+      { label: 'Duración', value: completionScore, note: 'Cuánto resistió el ciclo político del mandato.' },
+    ],
+    narrative,
+    achievements: achievements.slice(0, 4),
+    mistakes: mistakes.slice(0, 4),
+    affectedRegions,
+    memorableMoments,
   };
 }
-

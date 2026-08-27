@@ -6,9 +6,10 @@ import { Button } from '@components/ui/Button';
 export interface MainMenuProps {
   onStartNew: () => void;
   onContinue: () => void;
+  onOpenLeaderboard: () => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onContinue }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onContinue, onOpenLeaderboard }) => {
   const hasSave = useGameStore((s) => s.hasSaveAvailable);
   const loadExistingGame = useGameStore((s) => s.loadExistingGame);
 
@@ -34,7 +35,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onContinue }) =>
           MI MANDATO
         </h1>
         <p className="text-lg text-slate-300 font-light mb-2">
-          Un simulador sobre sobrevivir al poder.
+          Un simulador sobre cómo sobrevivir al poder.
         </p>
         <p className="text-xs text-slate-400 italic mb-10">
           «El sistema siempre intenta doblarte. La pregunta es qué costo estás dispuesto a pagar.»
@@ -43,12 +44,19 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartNew, onContinue }) =>
         <div className="flex flex-col gap-4 max-w-xs mx-auto">
           {hasSave && (
             <Button variant="gold" size="lg" onClick={handleContinue}>
-              Continuar Mandato ➔
+              Continuar mandato ➔
             </Button>
           )}
           <Button variant="primary" size="lg" onClick={onStartNew}>
-            Nueva Carrera Política
+            Iniciar mandato
           </Button>
+          <button
+            type="button"
+            onClick={onOpenLeaderboard}
+            className="text-xs text-slate-400 hover:text-sky-300 font-bold cursor-pointer"
+          >
+            Ver ranking y presidencias archivadas
+          </button>
         </div>
       </motion.div>
     </div>

@@ -150,14 +150,14 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-black tracking-wide flex items-center gap-2">
-              <span>🏛️</span> Despacho Presidencial
+              <span>🏛️</span> Despacho presidencial
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
               Sillón de Rivadavia
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Presidente <b>{character.name} {character.surname}</b> · {fortnight === 1 ? '1ª Quincena' : '2ª Quincena'} de {calendar.monthCycleName} ({calendar.year})
+            Presidente <b>{character.name} {character.surname}</b> · {fortnight === 1 ? '1ª quincena' : '2ª quincena'} de {calendar.monthCycleName} ({calendar.year})
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
         {/* Imagen de Fondo del Escritorio con Filtro de Luz Ambiental */}
         <img
           src="/presidential-desk.jpg"
-          alt="Escritorio Presidencial"
+          alt="Escritorio presidencial"
           className={`w-full h-full object-cover object-center transition-all duration-700 ${activeTimeFilter}`}
         />
 
@@ -310,7 +310,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
           onClick={handleAdvance}
           className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-500/20 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
         >
-          <span>▶</span> AVANZAR QUINCENA
+          <span>▶</span> Avanzar quincena
         </button>
       </div>
 
@@ -330,7 +330,7 @@ export const PresidentialDesk: React.FC<PresidentialDeskProps> = ({ gameState })
                 <div>
                   <h4 className="font-extrabold text-sm text-amber-700 dark:text-amber-300">{activeObject.title}</h4>
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                    Despacho Presidencial · Archivo Oficial
+                    Despacho presidencial · archivo oficial
                   </span>
                 </div>
               </div>

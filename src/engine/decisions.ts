@@ -1497,11 +1497,13 @@ function isCampaignWindow(state: GameState, election: 'legislative' | 'president
 }
 
 function isRelevantToCountry(decisionId: string, state: GameState): boolean {
-  const { economy, society } = state.nation;
+  const { economy, society, governance } = state.nation;
   const scarFamilies = new Set((state.scars ?? []).map((scar) => scar.familyId ?? scar.id));
   const hasEnergyScar = scarFamilies.has('el-invierno-frio');
   const hasEducationScar = scarFamilies.has('la-tension-universitaria');
   const hasEmploymentScar = scarFamilies.has('la-crisis-de-empleo');
+  const season = state.calendar.season;
+  const month = state.calendar.month;
 
   switch (decisionId) {
     case 'dec-crisis-reservas-urgente':
@@ -1511,15 +1513,37 @@ function isRelevantToCountry(decisionId: string, state: GameState): boolean {
     case 'dec-fmi-renegociacion':
       return economy.debt > 48 || economy.reserves < 28;
     case 'dec-retenciones-agro':
-      return economy.reserves < 62 || state.reputation.campo < 42;
+      return (month >= 3 && month <= 7) || economy.reserves < 62 || state.reputation.campo < 42;
     case 'dec-paritaria-docente':
-      return society.education < 57 || state.reputation.docentes < 45 || economy.inflation > 46 || hasEducationScar;
+      return (month >= 2 && month <= 5) || society.education < 57 || state.reputation.docentes < 45 || hasEducationScar;
     case 'dec-subsidio-transporte':
       return economy.inflation > 42 || society.socialConflicts > 30 || hasEmploymentScar;
     case 'dec-mundial-feriado':
-      return state.turn >= 10 && state.turn <= 34;
+      return state.turn >= 10 && state.turn <= 34 && (month === 6 || month === 7 || month === 11 || month === 12);
     case 'dec-mascota-cadena':
-      return state.character.popularity < 48 || state.socialMedia.memeAboutPlayer;
+      return state.character.popularity < 48 || Boolean(state.socialMedia.memeAboutPlayer);
+    case 'dec-crisis-energia-invierno':
+      // SOLO en Invierno (Junio, Julio, Agosto)
+      return season === 'Invierno';
+    case 'dec-catastrofe-ambiental-incendios':
+      // SOLO en Verano u Otoño (ola de calor/sequía)
+      return season === 'Verano' || season === 'Otoño';
+    case 'dec-conflicto-universitario-toma':
+      return (month >= 3 && month <= 11) && (society.education < 60 || state.reputation.universidades < 50 || hasEducationScar);
+    case 'dec-narcotrafico-frontera':
+      return society.socialConflicts > 30 || governance.institutionality < 60 || state.reputation['fuerzas-seguridad'] < 55;
+    case 'dec-reforma-laboral-flexibilidad':
+      return economy.gdp < 50 || state.reputation.empresarios < 50 || state.reputation.trabajadores < 45 || hasEmploymentScar;
+    case 'dec-espionaje-ilegal-carpetas':
+      return governance.corruption > 45 || state.reputation.prensa < 50 || governance.institutionality < 55;
+    case 'dec-reforma-judicial-corte':
+      return governance.institutionality < 60 || governance.corruption > 40;
+    case 'dec-licitacion-litio-patria':
+      return economy.reserves < 65 || economy.investment < 55;
+    case 'dec-pensiones-jubilaciones-indexacion':
+      return economy.inflation > 40 || state.reputation.jubilados < 50;
+    case 'dec-fondos-reservas-cripto':
+      return economy.reserves < 50 || state.reputation.jovenes < 55 || state.character.pragmatismo > 55;
     case 'dec-campana-legislativa':
       return state.phase === 'playing' && isCampaignWindow(state, 'legislative');
     case 'dec-campana-presidencial':

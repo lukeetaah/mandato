@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Province, MapLayer } from '@engine/types';
+import type { Province, MapLayer, PartyId } from '@engine/types';
 import { Card } from '@components/ui/Card';
 import { Badge } from '@components/ui/Badge';
 import { StatBar } from '@components/ui/StatBar';
@@ -70,6 +70,17 @@ const PROVINCE_PATHS: Record<string, { d: string; cx: number; cy: number; label:
   },
 };
 
+const REGION_GOVERNORS: Record<string, { name: string; partyId: PartyId | null; disposition: number; represents: string }> = {
+  'capital-federal': { name: 'Sofía Arce', partyId: 'coalicion-tecnologica', disposition: 8, represents: 'servicios, universidades y medios metropolitanos' },
+  'pampa-humeda': { name: 'Ramiro Echeverría', partyId: 'partido-tradicional', disposition: 12, represents: 'productores agropecuarios e intendentes rurales' },
+  'sierras-centro': { name: 'Valeria Quiroga', partyId: 'partido-verde', disposition: 4, represents: 'industria, estudiantes y polos tecnológicos' },
+  'noroeste-andino': { name: 'Lucía Benítez', partyId: 'movimiento-popular', disposition: -6, represents: 'minería, comunidades locales y obra pública pendiente' },
+  'cuyo-valles': { name: 'Tomás Aguirre', partyId: 'movimiento-federal', disposition: 0, represents: 'economías regionales, agua y energía solar' },
+  'litoral-subtropical': { name: 'Mariela Duarte', partyId: 'movimiento-popular', disposition: 10, represents: 'cooperativas, pesca fluvial y agricultura familiar' },
+  'costa-maritima': { name: 'Clara Montalvo', partyId: 'partido-liberal', disposition: -8, represents: 'turismo, pesca y comercio portuario' },
+  'sur-patagonico': { name: 'Gastón Roldán', partyId: 'partido-liberal', disposition: -14, represents: 'regalías energéticas, minería y autonomía patagónica' },
+};
+
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSelectProvince }) => {
   const theme = useUIStore((s) => s.theme);
   const isLight = theme === 'light';
@@ -77,8 +88,33 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>(provinces[0]?.id ?? 'noroeste-andino');
   const [activeLayer, setActiveLayer] = useState<MapLayer>('politico');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const gameState = useGameStore((s) => s.gameState);
+  const isRegionalActionUsed = (actionType: 'fondos' | 'fuerzas' | 'obras' | 'pacto') =>
+    Boolean(gameState?.flags?.[`regional-action-${actionType}`]);
 
   const selectedProvince = provinces.find((p) => p.id === selectedProvinceId) ?? provinces[0] ?? null;
+  const governorFromActor = selectedProvince && gameState?.actors.find((actor) => actor.id === selectedProvince.governorId);
+  const governorFallback = selectedProvince ? REGION_GOVERNORS[selectedProvince.id] : null;
+  const selectedGovernor = governorFromActor
+    ? {
+      name: `${governorFromActor.name} ${governorFromActor.surname}`,
+      partyId: governorFromActor.partyId,
+      disposition: governorFromActor.disposition,
+      represents: governorFallback?.represents ?? 'intereses territoriales de la región',
+    }
+    : governorFallback;
+  const governorParty = selectedGovernor?.partyId
+    ? gameState?.parties.find((party) => party.id === selectedGovernor.partyId)
+    : null;
+  const governorRelationship = !selectedGovernor || !gameState
+    ? 'neutral'
+    : selectedGovernor.partyId === gameState.character.partyId
+    ? 'aliado'
+    : selectedGovernor.disposition <= -10
+    ? 'rival'
+    : selectedGovernor.disposition >= 10
+    ? 'negociable'
+    : 'neutral';
 
   const handleSelect = (prov: Province) => {
     setSelectedProvinceId(prov.id);
@@ -87,8 +123,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
 
   const executeRegionalAction = (actionType: 'fondos' | 'fuerzas' | 'obras' | 'pacto') => {
     if (!selectedProvince) return;
+    if (isRegionalActionUsed(actionType)) {
+      setActionFeedback('Esta herramienta ejecutiva ya fue utilizada en este mandato. No puede volver a asignarse.');
+      return;
+    }
 
     useGameStore.getState().updateGameState((prev) => {
+      const actionFlag = `regional-action-${actionType}`;
+      if (prev.flags?.[actionFlag]) return prev;
       const updatedProvinces = prev.provinces.map((p) => {
         if (p.id !== selectedProvince.id) return p;
         if (actionType === 'fondos') {
@@ -116,23 +158,37 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
           };
         }
         // pacto
+        const pactBoost = governorRelationship === 'aliado' ? 14 : governorRelationship === 'rival' ? 6 : governorRelationship === 'negociable' ? 11 : 9;
         return {
           ...p,
-          socialMood: Math.min(50, p.socialMood + 12),
+          socialMood: Math.min(50, p.socialMood + pactBoost),
         };
       });
 
       return {
         ...prev,
+        flags: { ...prev.flags, [actionFlag]: true },
         provinces: updatedProvinces,
+        character: actionType === 'pacto' && governorRelationship === 'rival'
+          ? { ...prev.character, stress: Math.min(100, prev.character.stress + 2), pragmatismo: Math.min(100, prev.character.pragmatismo + 3) }
+          : prev.character,
+        actors: actionType === 'pacto' && selectedProvince
+          ? prev.actors.map((actor) => actor.id === selectedProvince.governorId
+            ? { ...actor, disposition: Math.min(100, actor.disposition + (governorRelationship === 'rival' ? 6 : 10)), loyalty: Math.min(100, actor.loyalty + (governorRelationship === 'aliado' ? 5 : 2)) }
+            : actor)
+          : prev.actors,
       };
     });
 
     const messages = {
-      fondos: `💰 Giro de Coparticipación Extra enviado a ${selectedProvince.name}. El humor social provincial mejoró.`,
-      fuerzas: `🛡️ Fuerzas de Seguridad enviadas a ${selectedProvince.name}. Orden restablecido en accesos clave.`,
-      obras: `🏗️ Presupuesto de Infraestructura aprobado para ${selectedProvince.name}. Crece el empleo local.`,
-      pacto: `🤝 Acuerdo Político sellado con el Gobernador de ${selectedProvince.name}. Aumenta la gobernabilidad.`,
+      fondos: `Giro de coparticipación extra enviado a ${selectedProvince.name}. El humor social provincial mejoró.`,
+      fuerzas: `Fuerzas de seguridad enviadas a ${selectedProvince.name}. Orden restablecido en accesos clave.`,
+      obras: `Presupuesto de infraestructura aprobado para ${selectedProvince.name}. Crece el empleo local.`,
+      pacto: governorRelationship === 'rival'
+        ? `Pacto costoso con ${selectedGovernor?.name ?? 'la gobernación'} en ${selectedProvince.name}. La región afloja, pero la negociación te cobra estrés y exposición.`
+        : governorRelationship === 'aliado'
+        ? `Pacto aceitado con ${selectedGovernor?.name ?? 'la gobernación'} en ${selectedProvince.name}. La alianza territorial queda más ordenada.`
+        : `Acuerdo político sellado con ${selectedGovernor?.name ?? 'la gobernación'} en ${selectedProvince.name}. La gobernabilidad regional mejora.`,
     };
 
     setActionFeedback(messages[actionType]);
@@ -170,10 +226,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
         <div className="w-full flex justify-between items-center">
           <div>
             <h3 className={`text-xl font-black tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
-              Mapa de la República
+              Mapa de la república
             </h3>
             <p className={`text-xs font-semibold ${isLight ? 'text-blue-700' : 'text-sky-400'}`}>
-              República del Sur — 8 provincias contiguas
+              República del Sur — 8 macro-regiones contiguas
             </p>
           </div>
         </div>
@@ -331,6 +387,32 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                 </div>
               )}
 
+              {selectedGovernor && (
+                <div className={`p-3 rounded-2xl border ${
+                  governorRelationship === 'aliado'
+                    ? isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-emerald-950/30 border-emerald-700/40 text-emerald-100'
+                    : governorRelationship === 'rival'
+                    ? isLight ? 'bg-rose-50 border-rose-200 text-rose-950' : 'bg-rose-950/30 border-rose-700/40 text-rose-100'
+                    : isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-900/70 border-slate-700 text-slate-200'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">Gobernación regional</span>
+                      <h4 className="text-sm font-black mt-0.5">{selectedGovernor.name}</h4>
+                      <p className="text-[11px] opacity-80">
+                        {governorParty?.name ?? 'Sin partido formal'} · relación {governorRelationship}
+                      </p>
+                    </div>
+                    <Badge variant={governorRelationship === 'rival' ? 'rose' : governorRelationship === 'aliado' ? 'gold' : 'slate'}>
+                      {governorRelationship}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] leading-relaxed mt-2 opacity-85">
+                    Representa a {selectedGovernor.represents}. Pactar con esta gobernación cambia según afinidad partidaria, disposición y costo político.
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 pt-2">
                 <StatBar label="Humor social territorial" value={selectedProvince.socialMood + 50} color="gold" />
                 <StatBar label="Empleo registrado" value={selectedProvince.economy.employment} color="emerald" />
@@ -349,50 +431,55 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ provinces, onSel
                 }`}>
                   <span>🏛️</span> Acciones directas del Ejecutivo en {selectedProvince.name}
                 </h4>
+                <p className={isLight ? 'text-[10px] text-blue-800' : 'text-[10px] text-slate-400'}>Cada instrumento puede usarse una sola vez durante el mandato.</p>
 
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <button
                     type="button"
                     onClick={() => executeRegionalAction('fondos')}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    disabled={isRegionalActionUsed('fondos')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all ${isRegionalActionUsed('fondos') ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} ${
                       isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-amber-300 hover:bg-slate-800'
                     }`}
                   >
                     💰 Fondos de Coparticipación Extra
-                    <span className="block text-[10px] font-normal text-slate-500">+8 Humor social · Mejora inversión</span>
+                    <span className="block text-[10px] font-normal text-slate-500">{isRegionalActionUsed('fondos') ? '✓ Usada en este mandato' : '+8 Humor social · Mejora inversión'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => executeRegionalAction('fuerzas')}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    disabled={isRegionalActionUsed('fuerzas')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all ${isRegionalActionUsed('fuerzas') ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} ${
                       isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-rose-300 hover:bg-slate-800'
                     }`}
                   >
                     🛡️ Desplegar Fuerzas Federales
-                    <span className="block text-[10px] font-normal text-slate-500">Orden en rutas y seguridad local</span>
+                    <span className="block text-[10px] font-normal text-slate-500">{isRegionalActionUsed('fuerzas') ? '✓ Usada en este mandato' : 'Orden en rutas y seguridad local'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => executeRegionalAction('obras')}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    disabled={isRegionalActionUsed('obras')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all ${isRegionalActionUsed('obras') ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} ${
                       isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-emerald-300 hover:bg-slate-800'
                     }`}
                   >
                     🏗️ Obras de Infraestructura
-                    <span className="block text-[10px] font-normal text-slate-500">+10 Infraestructura · +6 Empleo</span>
+                    <span className="block text-[10px] font-normal text-slate-500">{isRegionalActionUsed('obras') ? '✓ Usada en este mandato' : '+10 Infraestructura · +6 Empleo'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => executeRegionalAction('pacto')}
-                    className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    disabled={isRegionalActionUsed('pacto')}
+                    className={`p-2.5 rounded-xl border text-left font-bold transition-all ${isRegionalActionUsed('pacto') ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'} ${
                       isLight ? 'bg-white border-blue-200 text-blue-900 hover:bg-blue-100' : 'bg-slate-900 border-slate-700 text-sky-300 hover:bg-slate-800'
                     }`}
                   >
                     🤝 Negociar Pacto con Gobernador
-                    <span className="block text-[10px] font-normal text-slate-500">Aumenta lealtad y apoyo territorial</span>
+                    <span className="block text-[10px] font-normal text-slate-500">{isRegionalActionUsed('pacto') ? '✓ Usada en este mandato' : 'Aumenta lealtad y apoyo territorial'}</span>
                   </button>
                 </div>
               </div>

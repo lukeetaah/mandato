@@ -94,7 +94,7 @@ export const Dashboard: React.FC = () => {
             }`}>
               <span className="font-bold text-emerald-600 block text-xs">1. Tu despacho presidencial</span>
               <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                En la mesa principal tenés objetos interactivos: <b>teléfono rojo</b>, <b>diarios</b>, <b>expedientes</b> y <b>mensajes confidenciales</b>. Hacé click sobre ellos para inspeccionarlos o abrir decisiones. Al presionar <b>AVANZAR QUINCENA</b> transcurre el tiempo.
+                En la mesa principal tenés objetos interactivos: <b>teléfono rojo</b>, <b>diarios</b>, <b>expedientes</b> y <b>mensajes confidenciales</b>. Hacé click sobre ellos para inspeccionarlos o abrir decisiones. Al presionar <b>Avanzar quincena</b> transcurre el tiempo.
               </p>
             </div>
 
@@ -112,7 +112,7 @@ export const Dashboard: React.FC = () => {
             }`}>
               <span className="font-bold text-purple-600 block text-xs">3. Vías alternativas de gestión</span>
               <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                • 🗺️ <b>Provincias</b>: Pactá con gobernadores o desplegá fuerzas federales.<br />
+                • 🗺️ <b>Regiones</b>: Pactá con gobernadores o desplegá fuerzas federales.<br />
                 • 👤 <b>Perfil y vida</b>: Administrá tu patrimonio, salud y autos oficiales.<br />
                 • 📰 <b>Prensa y redes</b>: Medí el clima social y las portadas de los diarios.
               </p>
